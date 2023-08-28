@@ -17,3 +17,7 @@ Database migrations are handled by [tern](https://github.com/jackc/tern). All re
 ```sh
 tern migrate --config migrations/tern.conf --migrations migrations
 ```
+
+### Scanning
+
+[scany](https://github.com/georgysavva/scany) is the library of choice for scanning database data to Go structs and slices.

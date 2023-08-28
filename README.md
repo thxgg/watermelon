@@ -12,10 +12,11 @@ PostgreSQL database managed by [Railway](https://railway.app/).
 
 ### Migrations
 
-Database migrations are handled by [tern](https://github.com/jackc/tern). All relevant migration files (including configuration and the migration scripts themselves) are stored in `/migrations`. To migrate, ensure the `DATABASE_URL` env var is set to the connection string to the database and run the following command.
+Database migrations are handled by [tern](https://github.com/jackc/tern). All relevant migration files (including configuration and the migration scripts themselves) are stored in `internal/databse/migrations`. To migrate, ensure the `DATABASE_URL` env var is set to the connection string to the database and run
 
 ```sh
-tern migrate --config migrations/tern.conf --migrations migrations
+export $DATABASE_URL
+./scripts/migrate.sh
 ```
 
 ### Scanning

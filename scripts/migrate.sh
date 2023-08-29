@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-tern migrate --config ./config/tern.conf --migrations ./internal/database/migrations
+tern migrate --config ./platform/migrations/tern.conf --migrations ./platform/migrations

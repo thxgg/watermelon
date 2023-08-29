@@ -1,0 +1,56 @@
+definitions:
+  models.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+      verified:
+        type: boolean
+    type: object
+info:
+  contact: {}
+paths:
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get all existing users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+      summary: get all existing users
+      tags:
+      - User
+  /users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get user by given ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+      summary: get user by given ID
+      tags:
+      - User
+swagger: "2.0"

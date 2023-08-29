@@ -11,20 +11,20 @@ import (
 
 var DB *pgxpool.Pool
 
-func ConnectToDB() error {
+func Connect() error {
 	// Open connection to DB
 	ctx := context.Background()
-	db, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return err
 	}
 
 	// Register UUID data type
-	db.Config().AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+	pool.Config().AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 		pgxuuid.Register(conn.TypeMap())
 		return nil
 	}
 
-	DB = db
+	DB = pool
 	return nil
 }

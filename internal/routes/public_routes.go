@@ -5,13 +5,8 @@ import (
 	"github.com/thxgg/watermelon/app/controllers"
 )
 
-func PublicRoutes(a *fiber.App) {
+func PublicRoutes(a fiber.Router) {
 	// Auth
-	// a.Post("/register", controllers.Register)
-	// a.Post("/login", controllers.Login)
-
-	// Users
-	userGroup := a.Group("/users")
-	userGroup.Get("/", controllers.GetUsers)
-	userGroup.Get("/:id", controllers.GetUser)
+	a.Post("/register", controllers.Register)
+	a.Post("/login", controllers.Login)
 }

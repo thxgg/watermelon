@@ -2,10 +2,10 @@ package database
 
 import (
 	"context"
-	"os"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/thxgg/watermelon/config"
 	pgxuuid "github.com/vgarvardt/pgx-google-uuid/v5"
 )
 
@@ -14,7 +14,7 @@ var DB *pgxpool.Pool
 func Connect() error {
 	// Open connection to DB
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	pool, err := pgxpool.New(ctx, config.Config("DATABASE_URL"))
 	if err != nil {
 		return err
 	}

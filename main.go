@@ -11,6 +11,16 @@ import (
 	"github.com/thxgg/watermelon/platform/database"
 )
 
+// @title Watermelon API
+// @version 1.0
+// @description This is the API for Watermelon
+// @contact.name Georgi Georgiev
+// @contact.email gatanasovgeorgiev@gmail.com
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token
+// @BasePath /
 func main() {
 	// Connect to the database
 	err := database.Connect()
@@ -26,10 +36,11 @@ func main() {
 	middleware.FiberMiddleware(app)
 
 	// Setup routes
-	routes.SwaggerRoute(app)
-	routes.PublicRoutes(app)
-	routes.PrivateRoutes(app)
-	routes.NotFoundRoute(app)
+	api := app.Group("/api")
+	routes.SwaggerRoute(api)
+	routes.PublicRoutes(api)
+	routes.PrivateRoutes(api)
+	routes.NotFoundRoute(api)
 
 	// Start Fiber server
 	utils.StartServer(app)

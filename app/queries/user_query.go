@@ -29,10 +29,18 @@ func (q *UserQueries) GetUser(id uuid.UUID) (models.User, error) {
 	return user, err
 }
 
+func (q *UserQueries) GetUserByEmail(email string) (models.User, error) {
+	var user models.User
+
+	err := pgxscan.Get(context.Background(), q, &user, "SELECT * FROM users WHERE email=$1", email)
+
+	return user, err
+}
+
 func (q *UserQueries) CreateUser(u *models.User) (models.User, error) {
 	var user models.User
 
-	err := pgxscan.Get(context.Background(), q, &user, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3)", u.Email, u.Password, u.Username)
+	err := pgxscan.Get(context.Background(), q, &user, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", u.Email, u.Password, u.Username)
 
 	return user, err
 }
@@ -40,7 +48,7 @@ func (q *UserQueries) CreateUser(u *models.User) (models.User, error) {
 func (q *UserQueries) UpdateUser(id uuid.UUID, u *models.User) (models.User, error) {
 	var user models.User
 
-	err := pgxscan.Get(context.Background(), q, &user, "UPDATE users SET email=$2, password=$3, username=$4 WHERE id=$1", u.ID, u.Email, u.Password, u.Username)
+	err := pgxscan.Get(context.Background(), q, &user, "UPDATE users SET email=$2, password=$3, username=$4, is_admin=$5, verified=$6, updated_at=NOW() WHERE id=$1 RETURNING *", u.ID, u.Email, u.Password, u.Username, u.IsAdmin, u.Verified)
 
 	return user, err
 }

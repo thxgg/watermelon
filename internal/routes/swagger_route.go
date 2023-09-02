@@ -6,6 +6,6 @@ import (
 	_ "github.com/thxgg/watermelon/docs"
 )
 
-func SwaggerRoute(a *fiber.App) {
+func SwaggerRoute(a fiber.Router) {
 	a.Get("/swagger/*", swagger.HandlerDefault)
 }

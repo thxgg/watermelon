@@ -24,7 +24,7 @@ PostgreSQL database managed by [Railway](https://railway.app/).
 Database migrations are handled by [tern](https://github.com/jackc/tern). All relevant migration files (including configuration and the migration scripts themselves) are stored in `platform/migrations`. To migrate, ensure the `DATABASE_URL` env var is set to the connection string to the database and run
 
 ```sh
-export $DATABASE_URL
+export DATABASE_URL
 ./scripts/migrate.sh
 ```
 
@@ -39,3 +39,7 @@ The server is built using the Go [Fiber](https://github.com/gofiber/fiber) frame
 ### Swagger
 
 API documentation is handled by [Swagger](https://github.com/gofiber/swagger). To generate latest API docs, run `./scripts/swagger.sh`.
+
+### Authentication
+
+Authentication is handled by [JWT](https://github.com/gofiber/contrib/tree/master/middleware/jwt). JWTs are signed using the `JWT_SECRET` env var and are valid for as many hours as the `JWT_LIFETIME_HOURS` env var sets. They are stored in a Redis database managed by [Railway](https://railway.app/). The Redis connection string is stored in the `JWT_REDIS_URL` env var. The JWTs are stored in the Redis database with a TTL of `JWT_LIFETIME_HOURS` hours and are deleted after that time or upon logout.

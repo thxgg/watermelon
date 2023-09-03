@@ -1,7 +1,12 @@
 package utils
 
 import (
+	"fmt"
+	"html/template"
+
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/google/uuid"
+	"github.com/thxgg/watermelon/app/models"
 	"github.com/thxgg/watermelon/config"
 	"github.com/wneessen/go-mail"
 )
@@ -17,7 +22,7 @@ func init() {
 	emailClient = client
 }
 
-func SendEmail(to string, subject string, body string) error {
+func SendEmail(to string, subject string, templateName string, body interface{}) error {
 	m := mail.NewMsg()
 	if err := m.From(config.Config.Email.From); err != nil {
 		log.Fatalf("Failed to set From address: %s", err)
@@ -26,9 +31,30 @@ func SendEmail(to string, subject string, body string) error {
 		log.Fatalf("Failed to set To address: %s", err)
 	}
 	m.Subject(subject)
-	m.SetBodyString(mail.TypeTextPlain, body)
+	tmpl, err := template.ParseFiles(templateName)
+	if err != nil {
+		return err
+	}
+	m.SetBodyHTMLTemplate(tmpl, body)
 
-	err := emailClient.DialAndSend(m)
+	err = emailClient.DialAndSend(m)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SendEmailVerificationEmail(user *models.User, token uuid.UUID) error {
+	data := struct {
+		Username string
+		Link     string
+	}{
+		Username: user.Username,
+		Link:     fmt.Sprintf("%s/api/users/%s/verify?token=%s", config.Config.BaseURL, user.ID, token.String()),
+	}
+
+	err := SendEmail(user.Email, "Verify your email address", "templates/email_verification.html", data)
 	if err != nil {
 		return err
 	}

@@ -482,3 +482,59 @@ func DeleteUser(c *fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+// VerifyUserEmail attempts to verify a user's email given a token
+//
+// @Description	Verify a user's email given a token
+// @Tags				User
+// @Accept			json
+// @Produce			json
+// @Param				id path string true "User ID"
+// @Param				token query string true "Verification token"
+// @Success			204
+// @Failure			400 {object} utils.APIError "Bad request"
+// @Failure     500 {object} utils.APIError "Internal server error"
+// @Router			/api/users/{id}/verify [get]
+func VerifyUserEmail(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	token, err := uuid.Parse(c.Query("token"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	db := &queries.UserQueries{Pool: database.DB}
+	isValid, err := db.IsTokenValidForUser(token, id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	if !isValid {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   "invalid token",
+		})
+	}
+
+	err = db.VerifyUser(id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}

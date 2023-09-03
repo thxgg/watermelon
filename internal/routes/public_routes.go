@@ -9,4 +9,7 @@ func PublicRoutes(a fiber.Router) {
 	// Auth
 	a.Post("/register", controllers.Register)
 	a.Post("/login", controllers.Login)
+
+	// Users
+	a.Get("/users/:id/verify", controllers.VerifyUserEmail)
 }

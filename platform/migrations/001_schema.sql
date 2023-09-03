@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users(
   password TEXT NOT NULL,
   username TEXT NOT NULL UNIQUE,
   is_admin BOOLEAN DEFAULT FALSE,
-  verified BOOLEAN DEFAULT FALSE,
+  is_verified BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

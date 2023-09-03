@@ -26,6 +26,7 @@ type config struct {
 	Database string `validate:"url"`
 	JWT      JWTConfig
 	Email    EmailConfig
+	BaseURL  string `validate:"url"`
 }
 
 var Config config
@@ -54,6 +55,8 @@ func init() {
 		Password: loadEnvVar("SMTP_PASSWORD"),
 		From:     loadEnvVar("SMTP_FROM"),
 	}
+
+	Config.BaseURL = loadEnvVar("BASE_URL")
 
 	err = validator.Validator.Struct(Config)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/thxgg/watermelon/app/models"
 	"github.com/thxgg/watermelon/app/queries"
@@ -93,6 +94,25 @@ func Register(c *fiber.Ctx) error {
 		Password: string(hashedPassword),
 		Username: request.Username,
 	})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	uev, err := db.CreateUserEmailVerification(&models.UserEmailVerification{
+		UserID: user.ID,
+		Token:  uuid.New(),
+	})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	err = utils.SendEmailVerificationEmail(&user, uev.Token)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,

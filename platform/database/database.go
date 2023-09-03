@@ -14,7 +14,7 @@ var DB *pgxpool.Pool
 func Connect() error {
 	// Open connection to DB
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, config.Config("DATABASE_URL"))
+	pool, err := pgxpool.New(ctx, config.Config.Database)
 	if err != nil {
 		return err
 	}

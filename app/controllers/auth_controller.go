@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,19 +18,15 @@ import (
 
 // createSession creates a new session for the user
 func createSession(user *models.User) (string, error) {
-	jwtLifetime, err := strconv.Atoi(config.Config("JWT_EXPIRE_HOURS"))
-	if err != nil {
-		return "", err
-	}
-
-	expireAt := time.Now().Add(time.Hour * time.Duration(jwtLifetime))
+	expireAt := time.Now().Add(time.Hour * time.Duration(config.Config.JWT.Lifetime))
 	claims := jwt.MapClaims{
-		"sub": user.ID,
-		"exp": expireAt.Unix(),
+		"sub":      user.ID,
+		"is_admin": user.IsAdmin,
+		"exp":      expireAt.Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(config.Config("JWT_SECRET_KEY")))
+	signedToken, err := token.SignedString([]byte(config.Config.JWT.Secret))
 	if err != nil {
 		return "", err
 	}

@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/thxgg/watermelon/internal/middleware"
 	"github.com/thxgg/watermelon/internal/routes"
 	"github.com/thxgg/watermelon/internal/utils"

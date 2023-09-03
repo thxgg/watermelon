@@ -24,7 +24,7 @@ import (
 // @Security    Bearer
 func GetSelf(c *fiber.Ctx) error {
 	token := c.Locals("user").(*jwt.Token)
-	id, err := middleware.ValidateJWT(token)
+	claims, err := middleware.ValidateJWT(token)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
@@ -33,7 +33,15 @@ func GetSelf(c *fiber.Ctx) error {
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	user, err := db.GetUser(*id)
+	id, err := uuid.Parse(claims["sub"].(string))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	user, err := db.GetUser(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -65,7 +73,7 @@ type UserUpdateRequest struct {
 // @Security    Bearer
 func UpdateSelf(c *fiber.Ctx) error {
 	token := c.Locals("user").(*jwt.Token)
-	id, err := middleware.ValidateJWT(token)
+	claims, err := middleware.ValidateJWT(token)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
@@ -74,7 +82,15 @@ func UpdateSelf(c *fiber.Ctx) error {
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	user, err := db.GetUser(*id)
+	id, err := uuid.Parse(claims["sub"].(string))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	user, err := db.GetUser(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -94,7 +110,7 @@ func UpdateSelf(c *fiber.Ctx) error {
 	user.Email = request.Email
 	user.Username = request.Username
 
-	user, err = db.UpdateUser(*id, &user)
+	user, err = db.UpdateUser(id, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -126,7 +142,7 @@ type ChangePasswordRequest struct {
 // @Security    Bearer
 func ChangePassword(c *fiber.Ctx) error {
 	token := c.Locals("user").(*jwt.Token)
-	id, err := middleware.ValidateJWT(token)
+	claims, err := middleware.ValidateJWT(token)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
@@ -135,7 +151,15 @@ func ChangePassword(c *fiber.Ctx) error {
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	user, err := db.GetUser(*id)
+	id, err := uuid.Parse(claims["sub"].(string))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	user, err := db.GetUser(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -167,7 +191,7 @@ func ChangePassword(c *fiber.Ctx) error {
 		})
 	}
 	user.Password = string(newPassword)
-	user, err = db.UpdateUser(*id, &user)
+	user, err = db.UpdateUser(id, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -191,7 +215,7 @@ func ChangePassword(c *fiber.Ctx) error {
 // @Security    Bearer
 func DeleteSelf(c *fiber.Ctx) error {
 	token := c.Locals("user").(*jwt.Token)
-	id, err := middleware.ValidateJWT(token)
+	claims, err := middleware.ValidateJWT(token)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
@@ -200,7 +224,15 @@ func DeleteSelf(c *fiber.Ctx) error {
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	err = db.DeleteUser(*id)
+	id, err := uuid.Parse(claims["sub"].(string))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	err = db.DeleteUser(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -224,7 +256,7 @@ func DeleteSelf(c *fiber.Ctx) error {
 // @Security    Bearer
 func GetUsers(c *fiber.Ctx) error {
 	token := c.Locals("user").(*jwt.Token)
-	principalId, err := middleware.ValidateJWT(token)
+	claims, err := middleware.ValidateJWT(token)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
@@ -232,22 +264,14 @@ func GetUsers(c *fiber.Ctx) error {
 		})
 	}
 
-	db := &queries.UserQueries{Pool: database.DB}
-	principal, err := db.GetUser(*principalId)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
-
-	if !principal.IsAdmin {
+	if !claims["is_admin"].(bool) {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
 			Msg:   "unauthorized",
 		})
 	}
 
+	db := &queries.UserQueries{Pool: database.DB}
 	users, err := db.GetUsers()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
@@ -274,7 +298,7 @@ func GetUsers(c *fiber.Ctx) error {
 // @Security    Bearer
 func GetUser(c *fiber.Ctx) error {
 	token := c.Locals("user").(*jwt.Token)
-	principalId, err := middleware.ValidateJWT(token)
+	claims, err := middleware.ValidateJWT(token)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
@@ -282,22 +306,14 @@ func GetUser(c *fiber.Ctx) error {
 		})
 	}
 
-	db := &queries.UserQueries{Pool: database.DB}
-	principal, err := db.GetUser(*principalId)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
-
-	if !principal.IsAdmin {
+	if !claims["is_admin"].(bool) {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
 			Msg:   "unauthorized",
 		})
 	}
 
+	db := &queries.UserQueries{Pool: database.DB}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
@@ -333,7 +349,7 @@ func GetUser(c *fiber.Ctx) error {
 // @Security    Bearer
 func UpdateUser(c *fiber.Ctx) error {
 	token := c.Locals("user").(*jwt.Token)
-	principalId, err := middleware.ValidateJWT(token)
+	claims, err := middleware.ValidateJWT(token)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
@@ -341,8 +357,15 @@ func UpdateUser(c *fiber.Ctx) error {
 		})
 	}
 
+	if !claims["is_admin"].(bool) {
+		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
+			Error: true,
+			Msg:   "unauthorized",
+		})
+	}
+
 	db := &queries.UserQueries{Pool: database.DB}
-	principal, err := db.GetUser(*principalId)
+	id, err := uuid.Parse(claims["sub"].(string))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -350,14 +373,6 @@ func UpdateUser(c *fiber.Ctx) error {
 		})
 	}
 
-	if !principal.IsAdmin {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   "unauthorized",
-		})
-	}
-
-	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error: true,
@@ -411,7 +426,7 @@ func UpdateUser(c *fiber.Ctx) error {
 // @Security    Bearer
 func DeleteUser(c *fiber.Ctx) error {
 	token := c.Locals("user").(*jwt.Token)
-	principalId, err := middleware.ValidateJWT(token)
+	claims, err := middleware.ValidateJWT(token)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
@@ -419,25 +434,17 @@ func DeleteUser(c *fiber.Ctx) error {
 		})
 	}
 
-	db := &queries.UserQueries{Pool: database.DB}
-	principal, err := db.GetUser(*principalId)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
-
-	if !principal.IsAdmin {
+	if !claims["is_admin"].(bool) {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
 			Msg:   "unauthorized",
 		})
 	}
 
-	id, err := uuid.Parse(c.Params("id"))
+	db := &queries.UserQueries{Pool: database.DB}
+	id, err := uuid.Parse(claims["sub"].(string))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
 			Msg:   err.Error(),
 		})

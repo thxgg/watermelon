@@ -6,7 +6,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/thxgg/watermelon/config"
 
@@ -16,7 +15,7 @@ import (
 var JWT_DB *redis.Client
 
 func init() {
-	opt, err := redis.ParseURL(config.Config("JWT_REDIS_URL"))
+	opt, err := redis.ParseURL(config.Config.JWT.Database)
 	if err != nil {
 		panic(err)
 	}
@@ -26,7 +25,7 @@ func init() {
 
 func Protected() func(*fiber.Ctx) error {
 	config := jwtware.Config{
-		SigningKey:   jwtware.SigningKey{Key: []byte(config.Config("JWT_SECRET_KEY"))},
+		SigningKey:   jwtware.SigningKey{Key: []byte(config.Config.JWT.Secret)},
 		ErrorHandler: jwtError,
 	}
 
@@ -40,30 +39,18 @@ func jwtError(c *fiber.Ctx, err error) error {
 	})
 }
 
-func ValidateJWT(token *jwt.Token) (*uuid.UUID, error) {
-	exp, err := token.Claims.GetExpirationTime()
-	if err != nil {
-		return nil, err
-	}
+func ValidateJWT(token *jwt.Token) (jwt.MapClaims, error) {
+	claims := token.Claims.(jwt.MapClaims)
 
-	if exp.Before(time.Now()) {
+	exp := claims["exp"].(float64)
+	if time.Now().After(time.Unix(int64(exp), 0)) {
 		return nil, jwt.ErrTokenExpired
 	}
 
-	err = JWT_DB.Get(context.Background(), token.Raw).Err()
+	err := JWT_DB.Get(context.Background(), token.Raw).Err()
 	if err != nil {
 		return nil, err
 	}
 
-	sub, err := token.Claims.GetSubject()
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := uuid.Parse(sub)
-	if err != nil {
-		return nil, err
-	}
-
-	return &id, nil
+	return claims, nil
 }

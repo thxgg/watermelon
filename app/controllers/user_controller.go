@@ -54,8 +54,8 @@ func GetSelf(c *fiber.Ctx) error {
 
 // UserUpdateRequest represents the request body for updating a user
 type UserUpdateRequest struct {
-	Email    string `json:"email"`
-	Username string `json:"username"`
+	Email    string `json:"email" validate:"required,email"`
+	Username string `json:"username" validate:"required,min=3,max=32"`
 }
 
 // UpdateSelf updates the authenticated user
@@ -123,8 +123,8 @@ func UpdateSelf(c *fiber.Ctx) error {
 
 // ChangePasswordRequest represents the request body for changing a user's password
 type ChangePasswordRequest struct {
-	OldPassword string `json:"old_password"`
-	NewPassword string `json:"new_password"`
+	OldPassword string `json:"old_password" validate:"required,min=8,max=32"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=32,nefield=OldPassword"`
 }
 
 // ChangePassword changes the authenticated user's password

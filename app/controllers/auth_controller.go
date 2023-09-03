@@ -45,9 +45,9 @@ type Session struct {
 
 // RegisterRequest represents the data needed to register a new user
 type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Username string `json:"username"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=32"`
+	Username string `json:"username" validate:"required,min=3,max=32"`
 }
 
 // Register creates a new user
@@ -105,8 +105,8 @@ func Register(c *fiber.Ctx) error {
 
 // LoginRequest represents the data needed to login a user
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=32"`
 }
 
 // Login creates a new session for the user

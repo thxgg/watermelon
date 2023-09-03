@@ -5,25 +5,23 @@ import (
 	"strconv"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/thxgg/watermelon/internal/utils"
 )
 
 type JWTConfig struct {
 	Secret   string
-	Database string
+	Database string `validate:"url"`
 	Lifetime int
 }
 
-var Config struct {
-	Database string
+type config struct {
+	Database string `validate:"url"`
 	JWT      JWTConfig
 }
 
-func init() {
-	Config = struct {
-		Database string
-		JWT      JWTConfig
-	}{}
+var Config config
 
+func init() {
 	Config.Database = loadEnvVar("DATABASE_URL")
 
 	jwtLifetime, err := strconv.Atoi(loadEnvVar("JWT_LIFETIME_HOURS"))
@@ -34,6 +32,11 @@ func init() {
 		Secret:   loadEnvVar("JWT_SECRET_KEY"),
 		Database: loadEnvVar("JWT_REDIS_URL"),
 		Lifetime: jwtLifetime,
+	}
+
+	err = utils.Validator.Struct(Config)
+	if err != nil {
+		panic(err)
 	}
 }
 

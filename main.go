@@ -14,10 +14,10 @@ import (
 // @description This is the API for Watermelon
 // @contact.name Georgi Georgiev
 // @contact.email gatanasovgeorgiev@gmail.com
-// @securityDefinitions.apikey Bearer
-// @in header
-// @name Authorization
-// @description Type "Bearer" followed by a space and JWT token
+// @securityDefinitions.apikey SessionID
+// @in cookie
+// @name sessionID
+// @description This is the session ID
 // @BasePath /
 func main() {
 	// Connect to the database

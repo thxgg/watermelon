@@ -2,10 +2,8 @@ package controllers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/thxgg/watermelon/app/queries"
-	"github.com/thxgg/watermelon/internal/middleware"
 	"github.com/thxgg/watermelon/internal/utils"
 	"github.com/thxgg/watermelon/internal/validator"
 	"github.com/thxgg/watermelon/platform/database"
@@ -22,27 +20,12 @@ import (
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/me [get]
-// @Security    Bearer
+// @Security    SessionID
 func GetSelf(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	session := c.Locals("session").(utils.Session)
 
 	db := &queries.UserQueries{Pool: database.DB}
-	id, err := uuid.Parse(claims["sub"].(string))
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
-
-	user, err := db.GetUser(id)
+	user, err := db.GetUser(session.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -71,27 +54,12 @@ type UserUpdateRequest struct {
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/me [put]
-// @Security    Bearer
+// @Security    SessionID
 func UpdateSelf(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	session := c.Locals("session").(utils.Session)
 
 	db := &queries.UserQueries{Pool: database.DB}
-	id, err := uuid.Parse(claims["sub"].(string))
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
-
-	user, err := db.GetUser(id)
+	user, err := db.GetUser(session.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -118,7 +86,7 @@ func UpdateSelf(c *fiber.Ctx) error {
 	user.Email = request.Email
 	user.Username = request.Username
 
-	user, err = db.UpdateUser(id, &user)
+	user, err = db.UpdateUser(session.UserID, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -147,27 +115,12 @@ type ChangePasswordRequest struct {
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/me/password [put]
-// @Security    Bearer
+// @Security    SessionID
 func ChangePassword(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	session := c.Locals("session").(utils.Session)
 
 	db := &queries.UserQueries{Pool: database.DB}
-	id, err := uuid.Parse(claims["sub"].(string))
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
-
-	user, err := db.GetUser(id)
+	user, err := db.GetUser(session.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -206,7 +159,7 @@ func ChangePassword(c *fiber.Ctx) error {
 		})
 	}
 	user.Password = string(newPassword)
-	user, err = db.UpdateUser(id, &user)
+	user, err = db.UpdateUser(session.UserID, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -227,27 +180,12 @@ func ChangePassword(c *fiber.Ctx) error {
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/me [delete]
-// @Security    Bearer
+// @Security    SessionID
 func DeleteSelf(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	session := c.Locals("session").(utils.Session)
 
 	db := &queries.UserQueries{Pool: database.DB}
-	id, err := uuid.Parse(claims["sub"].(string))
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
-
-	err = db.DeleteUser(id)
+	err := db.DeleteUser(session.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -268,21 +206,14 @@ func DeleteSelf(c *fiber.Ctx) error {
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/users [get]
-// @Security    Bearer
+// @Security    SessionID
 func GetUsers(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	session := c.Locals("session").(utils.Session)
 
-	if !claims["is_admin"].(bool) {
+	if !session.IsAdmin {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
-			Msg:   "unauthorized",
+			Msg:   "Unauthorized",
 		})
 	}
 
@@ -310,21 +241,14 @@ func GetUsers(c *fiber.Ctx) error {
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/users/{id} [get]
-// @Security    Bearer
+// @Security    SessionID
 func GetUser(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	session := c.Locals("session").(utils.Session)
 
-	if !claims["is_admin"].(bool) {
+	if !session.IsAdmin {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
-			Msg:   "unauthorized",
+			Msg:   "Unauthorized",
 		})
 	}
 
@@ -361,26 +285,19 @@ func GetUser(c *fiber.Ctx) error {
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/users/{id} [put]
-// @Security    Bearer
+// @Security    SessionID
 func UpdateUser(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	session := c.Locals("session").(utils.Session)
 
-	if !claims["is_admin"].(bool) {
+	if !session.IsAdmin {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
-			Msg:   "unauthorized",
+			Msg:   "Unauthorized",
 		})
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	id, err := uuid.Parse(claims["sub"].(string))
+	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -445,26 +362,19 @@ func UpdateUser(c *fiber.Ctx) error {
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/users/{id} [delete]
-// @Security    Bearer
+// @Security    SessionID
 func DeleteUser(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	claims, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	session := c.Locals("session").(utils.Session)
 
-	if !claims["is_admin"].(bool) {
+	if !session.IsAdmin {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error: true,
-			Msg:   "unauthorized",
+			Msg:   "Unauthorized",
 		})
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	id, err := uuid.Parse(claims["sub"].(string))
+	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,

@@ -43,11 +43,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.Session"
-                        }
+                    "204": {
+                        "description": "No Content"
                     },
                     "400": {
                         "description": "Invalid request",
@@ -74,7 +71,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Invalidate the user's session",
@@ -90,12 +87,6 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
-                    },
-                    "401": {
-                        "description": "Invalid credentials",
-                        "schema": {
-                            "$ref": "#/definitions/utils.APIError"
-                        }
                     }
                 }
             }
@@ -104,7 +95,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Get the authenticated user",
@@ -141,7 +132,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Update the authenticated user",
@@ -195,7 +186,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Delete the authenticated user",
@@ -231,7 +222,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Changes the authenticated user's password",
@@ -305,10 +296,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.Session"
-                        }
+                        "description": "Created"
                     },
                     "400": {
                         "description": "Invalid request",
@@ -329,7 +317,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Get all existing users",
@@ -371,7 +359,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Get user by given ID",
@@ -423,7 +411,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Update user by given ID",
@@ -484,7 +472,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "Bearer": []
+                        "SessionID": []
                     }
                 ],
                 "description": "Delete user by given ID",
@@ -577,6 +565,76 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/forgotten-password": {
+            "post": {
+                "description": "Create a forgotten password token for a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User's email address",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/reset-password": {
+            "post": {
+                "description": "Create a forgotten password token for a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "parameters": [
+                    {
+                        "description": "Reset password data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -639,9 +697,22 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.Session": {
+        "controllers.ResetPasswordRequest": {
             "type": "object",
+            "required": [
+                "id",
+                "password",
+                "token"
+            ],
             "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 8
+                },
                 "token": {
                     "type": "string"
                 }
@@ -703,11 +774,11 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "Bearer": {
-            "description": "Type \"Bearer\" followed by a space and JWT token",
+        "SessionID": {
+            "description": "This is the session ID",
             "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
+            "name": "sessionID",
+            "in": "cookie"
         }
     }
 }`

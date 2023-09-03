@@ -3,16 +3,16 @@ package config
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2/log"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/thxgg/watermelon/internal/validator"
 )
 
-type JWTConfig struct {
-	Secret   string
+type SessionConfig struct {
 	Database string `validate:"url"`
-	Lifetime int
+	Duration time.Duration
 }
 
 type EmailConfig struct {
@@ -25,7 +25,7 @@ type EmailConfig struct {
 
 type config struct {
 	Database string `validate:"url"`
-	JWT      JWTConfig
+	Sessions SessionConfig
 	Email    EmailConfig
 	BaseURL  string `validate:"url"`
 }
@@ -34,18 +34,20 @@ var Config config
 
 func init() {
 	log.Debug("Loading configuration")
+	// Database
 	Config.Database = loadEnvVar("DATABASE_URL")
 
-	jwtLifetime, err := strconv.Atoi(loadEnvVar("JWT_LIFETIME_HOURS"))
+	// Sessions
+	sessionsDuration, err := strconv.Atoi(loadEnvVar("SESSION_DURATION_HOURS"))
 	if err != nil {
-		log.Panicf("Failed to parse JWT lifetime: %s", err)
+		log.Panicf("Failed to parse sessions duration: %s", err)
 	}
-	Config.JWT = JWTConfig{
-		Secret:   loadEnvVar("JWT_SECRET_KEY"),
-		Database: loadEnvVar("JWT_REDIS_URL"),
-		Lifetime: jwtLifetime,
+	Config.Sessions = SessionConfig{
+		Database: loadEnvVar("SESSION_DATABASE_URL"),
+		Duration: time.Duration(sessionsDuration),
 	}
 
+	// Email
 	smtpPort, err := strconv.Atoi(loadEnvVar("SMTP_PORT"))
 	if err != nil {
 		log.Panicf("Failed to parse SMTP port: %s", err)
@@ -58,6 +60,7 @@ func init() {
 		From:     loadEnvVar("SMTP_FROM"),
 	}
 
+	// App
 	Config.BaseURL = loadEnvVar("BASE_URL")
 
 	err = validator.Validator.Struct(Config)

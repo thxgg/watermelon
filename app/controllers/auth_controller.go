@@ -5,9 +5,8 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"github.com/thxgg/watermelon/app/models"
 	"github.com/thxgg/watermelon/app/queries"
 	"github.com/thxgg/watermelon/config"
@@ -18,31 +17,36 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// createSession creates a new session for the user
-func createSession(user *models.User) (string, error) {
-	expireAt := time.Now().Add(time.Hour * time.Duration(config.Config.JWT.Lifetime))
-	claims := jwt.MapClaims{
-		"sub":      user.ID,
-		"is_admin": user.IsAdmin,
-		"exp":      expireAt.Unix(),
+// createSession creates a new session for the user and sets a cookie
+func createSession(c *fiber.Ctx, user *models.User) error {
+	sessionID := uuid.New().String()
+	expiresAt := time.Now().Add(time.Hour * config.Config.Sessions.Duration)
+	session := utils.Session{
+		UserID:       user.ID,
+		UserIDString: user.ID.String(),
+		IsAdmin:      user.IsAdmin,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(config.Config.JWT.Secret))
-	if err != nil {
-		return "", err
+	setRes := middleware.SessionsDB.HSet(context.Background(), sessionID, session)
+	if setRes.Err() != nil {
+		log.Errorf("Error setting session details for user '%s': %s", user.ID, setRes.Err())
+		return setRes.Err()
 	}
 
-	middleware.JWT_DB.SetArgs(context.Background(), signedToken, true, redis.SetArgs{
-		ExpireAt: expireAt,
+	expireRes := middleware.SessionsDB.ExpireAt(context.Background(), sessionID, expiresAt)
+	if expireRes.Err() != nil {
+		log.Errorf("Error setting session expiration for user '%s': %s", user.ID, expireRes.Err())
+		return expireRes.Err()
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "sessionID",
+		Value:    sessionID,
+		Expires:  expiresAt,
+		Secure:   true,
+		HTTPOnly: true,
 	})
-
-	return signedToken, nil
-}
-
-// Session represents a user's session token
-type Session struct {
-	Token string `json:"token"`
+	return nil
 }
 
 // RegisterRequest represents the data needed to register a new user
@@ -59,7 +63,7 @@ type RegisterRequest struct {
 // @Accept			json
 // @Produce			json
 // @Param 			request body RegisterRequest true "Registration data"
-// @Success			201 {object} Session
+// @Success			201
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/api/register [post]
@@ -120,7 +124,7 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	token, err := createSession(&user)
+	err = createSession(c, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -128,7 +132,7 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(Session{Token: token})
+	return c.SendStatus(fiber.StatusCreated)
 }
 
 // LoginRequest represents the data needed to login a user
@@ -144,7 +148,7 @@ type LoginRequest struct {
 // @Accept			json
 // @Produce			json
 // @Param 			request body LoginRequest true "Login data"
-// @Success			200 {object} Session
+// @Success			204
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     401 {object} utils.APIError "Invalid credentials"
 // @Failure     500 {object} utils.APIError "Internal server error"
@@ -183,7 +187,7 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	token, err := createSession(&user)
+	err = createSession(c, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -191,9 +195,7 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"token": token,
-	})
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // Logout invalidates the user's session
@@ -203,20 +205,20 @@ func Login(c *fiber.Ctx) error {
 // @Accept			json
 // @Produce			json
 // @Success			204
-// @Failure     401 {object} utils.APIError "Invalid credentials"
 // @Router			/api/logout [delete]
-// @Security    Bearer
+// @Security    SessionID
 func Logout(c *fiber.Ctx) error {
-	token := c.Locals("user").(*jwt.Token)
-	_, err := middleware.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
-		})
-	}
+	sessionID := c.Cookies("sessionID")
 
-	middleware.JWT_DB.Del(context.Background(), token.Raw)
+	middleware.SessionsDB.HDel(context.Background(), sessionID)
+	// c.ClearCookie("sessionID") seems to be broken, this is a workaround that mimics the internals of ClearCookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "sessionID",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		Secure:   true,
+		HTTPOnly: true,
+	})
 
 	return c.SendStatus(fiber.StatusNoContent)
 }

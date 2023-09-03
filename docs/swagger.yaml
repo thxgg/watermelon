@@ -42,10 +42,20 @@ definitions:
     - password
     - username
     type: object
-  controllers.Session:
+  controllers.ResetPasswordRequest:
     properties:
+      id:
+        type: string
+      password:
+        maxLength: 32
+        minLength: 8
+        type: string
       token:
         type: string
+    required:
+    - id
+    - password
+    - token
     type: object
   controllers.UserUpdateRequest:
     properties:
@@ -106,10 +116,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controllers.Session'
+        "204":
+          description: No Content
         "400":
           description: Invalid request
           schema:
@@ -134,12 +142,8 @@ paths:
       responses:
         "204":
           description: No Content
-        "401":
-          description: Invalid credentials
-          schema:
-            $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - Auth
   /api/me:
@@ -161,7 +165,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - User
     get:
@@ -184,7 +188,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - User
     put:
@@ -218,7 +222,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - User
   /api/me/password:
@@ -251,7 +255,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - User
   /api/register:
@@ -271,8 +275,6 @@ paths:
       responses:
         "201":
           description: Created
-          schema:
-            $ref: '#/definitions/controllers.Session'
         "400":
           description: Invalid request
           schema:
@@ -306,7 +308,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - User
   /api/users/{id}:
@@ -338,7 +340,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - User
     get:
@@ -371,7 +373,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - User
     put:
@@ -410,7 +412,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIError'
       security:
-      - Bearer: []
+      - SessionID: []
       tags:
       - User
   /api/users/{id}/verify:
@@ -444,10 +446,55 @@ paths:
             $ref: '#/definitions/utils.APIError'
       tags:
       - User
+  /forgotten-password:
+    post:
+      consumes:
+      - application/json
+      description: Create a forgotten password token for a user
+      parameters:
+      - description: User's email address
+        in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      tags:
+      - Auth
+  /reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Create a forgotten password token for a user
+      parameters:
+      - description: Reset password data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      tags:
+      - Auth
 securityDefinitions:
-  Bearer:
-    description: Type "Bearer" followed by a space and JWT token
-    in: header
-    name: Authorization
+  SessionID:
+    description: This is the session ID
+    in: cookie
+    name: sessionID
     type: apiKey
 swagger: "2.0"

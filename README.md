@@ -19,6 +19,11 @@ Application configuration is automatically loaded and validated from environment
 - `JWT_SECRET_KEY`: the secret used to sign JWTs
 - `JWT_LIFETIME_HOURS`: the number of hours a JWT is valid for
 - `JWT_REDIS_URL`: the connection string to the Redis database used to store JWTs
+- `SMTP_HOST`: the SMTP host to use for sending emails
+- `SMTP_PORT`: the SMTP port to use for sending emails
+- `SMTP_USERNAME`: the SMTP username to use for sending emails
+- `SMTP_PASSWORD`: the SMTP password to use for sending emails
+- `SMTP_FROM`: the email address to use for sending emails
 
 ## Database
 
@@ -56,3 +61,7 @@ Authentication is handled by [JWT](https://github.com/gofiber/contrib/tree/maste
 ### Validation
 
 Validation is handled by [validator](https://github.com/go-playground/validator). All request bodies must include proper validation tags and are validated before being processed by the server.
+
+### Email
+
+Emails are sent using [go-mail](https://github.com/wneessen/go-mail).

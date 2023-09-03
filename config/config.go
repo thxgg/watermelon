@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/thxgg/watermelon/internal/utils"
+	"github.com/thxgg/watermelon/internal/validator"
 )
 
 type JWTConfig struct {
@@ -14,9 +14,18 @@ type JWTConfig struct {
 	Lifetime int
 }
 
+type EmailConfig struct {
+	Host     string `validate:"hostname"`
+	Port     int
+	Username string
+	Password string
+	From     string `validate:"email"`
+}
+
 type config struct {
 	Database string `validate:"url"`
 	JWT      JWTConfig
+	Email    EmailConfig
 }
 
 var Config config
@@ -34,7 +43,19 @@ func init() {
 		Lifetime: jwtLifetime,
 	}
 
-	err = utils.Validator.Struct(Config)
+	smtpPort, err := strconv.Atoi(loadEnvVar("SMTP_PORT"))
+	if err != nil {
+		panic(err)
+	}
+	Config.Email = EmailConfig{
+		Host:     loadEnvVar("SMTP_HOST"),
+		Port:     smtpPort,
+		Username: loadEnvVar("SMTP_USERNAME"),
+		Password: loadEnvVar("SMTP_PASSWORD"),
+		From:     loadEnvVar("SMTP_FROM"),
+	}
+
+	err = validator.Validator.Struct(Config)
 	if err != nil {
 		panic(err)
 	}

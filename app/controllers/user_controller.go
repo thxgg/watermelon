@@ -7,6 +7,7 @@ import (
 	"github.com/thxgg/watermelon/app/queries"
 	"github.com/thxgg/watermelon/internal/middleware"
 	"github.com/thxgg/watermelon/internal/utils"
+	"github.com/thxgg/watermelon/internal/validator"
 	"github.com/thxgg/watermelon/platform/database"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -106,6 +107,13 @@ func UpdateSelf(c *fiber.Ctx) error {
 			Msg:   err.Error(),
 		})
 	}
+	err = validator.Validator.Struct(request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
 
 	user.Email = request.Email
 	user.Username = request.Username
@@ -169,6 +177,13 @@ func ChangePassword(c *fiber.Ctx) error {
 
 	var request ChangePasswordRequest
 	err = c.BodyParser(&request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error: true,
@@ -390,6 +405,13 @@ func UpdateUser(c *fiber.Ctx) error {
 
 	var request UserUpdateRequest
 	err = c.BodyParser(&request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error: true,

@@ -12,6 +12,7 @@ import (
 	"github.com/thxgg/watermelon/config"
 	"github.com/thxgg/watermelon/internal/middleware"
 	"github.com/thxgg/watermelon/internal/utils"
+	"github.com/thxgg/watermelon/internal/validator"
 	"github.com/thxgg/watermelon/platform/database"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -64,6 +65,13 @@ type RegisterRequest struct {
 func Register(c *fiber.Ctx) error {
 	var request RegisterRequest
 	err := c.BodyParser(&request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error: true,
@@ -124,6 +132,13 @@ type LoginRequest struct {
 func Login(c *fiber.Ctx) error {
 	var request LoginRequest
 	err := c.BodyParser(&request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error: true,

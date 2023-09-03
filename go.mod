@@ -14,6 +14,7 @@ require (
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/swaggo/swag v1.16.1
 	github.com/vgarvardt/pgx-google-uuid/v5 v5.0.0
+	github.com/wneessen/go-mail v0.4.0
 )
 
 require (

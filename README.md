@@ -10,6 +10,7 @@ This project is the first of the PGV stack (Postgres, Go, Vue).
 - `internal`: server setup logic (e.g. middlware, routing, utilities)
 - `platform`: platform-level configuration (e.g. database connection, database migrations)
 - `scripts`: scripts for builds, installs, analysis, etc.
+- `templates`: email templates
 - `website`: the web client
 
 ## Configuration

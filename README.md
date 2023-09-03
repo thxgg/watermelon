@@ -55,4 +55,4 @@ Authentication is handled by [JWT](https://github.com/gofiber/contrib/tree/maste
 
 ### Validation
 
-Validation is handled by [go-playground/validator](https://github.com/go-playground/validator). All request bodies must include proper validation tags and are validated before being processed by the server.
+Validation is handled by [validator](https://github.com/go-playground/validator). All request bodies must include proper validation tags and are validated before being processed by the server.

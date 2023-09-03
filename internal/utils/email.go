@@ -14,31 +14,41 @@ import (
 var emailClient *mail.Client
 
 func init() {
+	log.Debug("Setting up email client")
 	client, err := mail.NewClient(config.Config.Email.Host, mail.WithPort(config.Config.Email.Port), mail.WithSSL(), mail.WithSMTPAuth(mail.SMTPAuthLogin), mail.WithUsername(config.Config.Email.Username), mail.WithPassword(config.Config.Email.Password))
 	if err != nil {
-		panic(err)
+		log.Fatal("Failed to setup email client")
 	}
 
 	emailClient = client
 }
 
 func SendEmail(to string, subject string, templateName string, body interface{}) error {
+	log.Debugf("Sending email to %s with subject %s from template %s with data %v", to, subject, templateName, body)
 	m := mail.NewMsg()
 	if err := m.From(config.Config.Email.From); err != nil {
-		log.Fatalf("Failed to set From address: %s", err)
+		log.Errorf("Failed to set email from address: %s", err)
+		return err
 	}
 	if err := m.To(to); err != nil {
-		log.Fatalf("Failed to set To address: %s", err)
+		log.Errorf("Failed to set email to address: %s", err)
+		return err
 	}
 	m.Subject(subject)
 	tmpl, err := template.ParseFiles(templateName)
 	if err != nil {
+		log.Errorf("Failed to parse email template %s: %s", templateName, err)
 		return err
 	}
-	m.SetBodyHTMLTemplate(tmpl, body)
+	err = m.SetBodyHTMLTemplate(tmpl, body)
+	if err != nil {
+		log.Errorf("Failed to set email body: %s", err)
+		return err
+	}
 
 	err = emailClient.DialAndSend(m)
 	if err != nil {
+		log.Errorf("Failed to send email: %s", err)
 		return err
 	}
 
@@ -46,6 +56,7 @@ func SendEmail(to string, subject string, templateName string, body interface{})
 }
 
 func SendEmailVerificationEmail(user *models.User, uev models.UserEmailVerification) error {
+	log.Infof("Sending email verification email to %s", user.Email)
 	data := struct {
 		Username string
 		Link     string
@@ -56,6 +67,7 @@ func SendEmailVerificationEmail(user *models.User, uev models.UserEmailVerificat
 
 	err := SendEmail(user.Email, "Verify your email address", "templates/email_verification.html", data)
 	if err != nil {
+		log.Errorf("Failed to send email verification email to %s: %s", user.Email, err)
 		return err
 	}
 
@@ -63,6 +75,7 @@ func SendEmailVerificationEmail(user *models.User, uev models.UserEmailVerificat
 }
 
 func SendForgottenPasswordEmail(user *models.User, fp models.ForgottenPassword) error {
+	log.Infof("Sending forgotten password email to %s", user.Email)
 	data := struct {
 		Username  string
 		Link      string
@@ -75,6 +88,7 @@ func SendForgottenPasswordEmail(user *models.User, fp models.ForgottenPassword) 
 
 	err := SendEmail(user.Email, "Forgotten password", "templates/forgotten_password.html", data)
 	if err != nil {
+		log.Errorf("Failed to send forgotten password email to %s: %s", user.Email, err)
 		return err
 	}
 

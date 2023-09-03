@@ -1,9 +1,8 @@
 package utils
 
 import (
-	"log"
-
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 )
 
 func StartServer(a *fiber.App) {

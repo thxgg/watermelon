@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/gofiber/fiber/v2/log"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/thxgg/watermelon/internal/validator"
 )
@@ -32,11 +33,12 @@ type config struct {
 var Config config
 
 func init() {
+	log.Debug("Loading configuration")
 	Config.Database = loadEnvVar("DATABASE_URL")
 
 	jwtLifetime, err := strconv.Atoi(loadEnvVar("JWT_LIFETIME_HOURS"))
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to parse JWT lifetime: %s", err)
 	}
 	Config.JWT = JWTConfig{
 		Secret:   loadEnvVar("JWT_SECRET_KEY"),
@@ -46,7 +48,7 @@ func init() {
 
 	smtpPort, err := strconv.Atoi(loadEnvVar("SMTP_PORT"))
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to parse SMTP port: %s", err)
 	}
 	Config.Email = EmailConfig{
 		Host:     loadEnvVar("SMTP_HOST"),
@@ -60,14 +62,14 @@ func init() {
 
 	err = validator.Validator.Struct(Config)
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to validate configuration: %s", err)
 	}
 }
 
 func loadEnvVar(key string) string {
 	value, present := os.LookupEnv(key)
 	if !present {
-		panic(key + " environment variable is not set")
+		log.Panicf("Environment variable %s not set", key)
 	}
 
 	return value

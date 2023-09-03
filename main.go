@@ -1,9 +1,8 @@
 package main
 
 import (
-	"log"
-
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/thxgg/watermelon/internal/middleware"
 	"github.com/thxgg/watermelon/internal/routes"
 	"github.com/thxgg/watermelon/internal/utils"
@@ -24,7 +23,7 @@ func main() {
 	// Connect to the database
 	err := database.Connect()
 	if err != nil {
-		log.Fatalln("Failed to connect to the database")
+		log.Fatal("Failed to connect to the database")
 	}
 	defer database.DB.Close()
 
@@ -35,6 +34,7 @@ func main() {
 	middleware.FiberMiddleware(app)
 
 	// Setup routes
+	log.Debug("Setting up routes")
 	api := app.Group("/api")
 	routes.SwaggerRoute(api)
 	routes.PublicRoutes(api)

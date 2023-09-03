@@ -21,3 +21,9 @@ type UserEmailVerification struct {
 	UserID uuid.UUID
 	Token  uuid.UUID
 }
+
+type ForgottenPassword struct {
+	UserID    uuid.UUID
+	Token     uuid.UUID
+	ExpiresAt time.Time
+}

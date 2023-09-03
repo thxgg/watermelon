@@ -112,7 +112,7 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	err = utils.SendEmailVerificationEmail(&user, uev.Token)
+	err = utils.SendEmailVerificationEmail(&user, uev)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -217,6 +217,127 @@ func Logout(c *fiber.Ctx) error {
 	}
 
 	middleware.JWT_DB.Del(context.Background(), token.Raw)
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// ForgottenPassword creates a forgotten password token for a user
+//
+// @Description Create a forgotten password token for a user
+// @Tags				Auth
+// @Accept			json
+// @Produce			json
+// @Param 			email query string true "User's email address"
+// @Success			204
+// @Failure     500 {object} utils.APIError "Internal server error"
+// @Router			/forgotten-password [post]
+func ForgottenPassword(c *fiber.Ctx) error {
+	email := c.Query("email")
+	err := validator.Validator.Var(email, "required,email")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	db := &queries.UserQueries{Pool: database.DB}
+	user, err := db.GetUserByEmail(email)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	fp, err := db.CreateForgottenPassword(&models.ForgottenPassword{
+		UserID: user.ID,
+		Token:  uuid.New(),
+	})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	err = utils.SendForgottenPasswordEmail(&user, fp)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// ResetPasswordRequest represents the data needed to reset a user's password
+type ResetPasswordRequest struct {
+	ID       uuid.UUID `json:"id" validate:"required,uuid4"`
+	Token    uuid.UUID `json:"token" validate:"required,uuid4"`
+	Password string    `json:"password" validate:"required,min=8,max=32"`
+}
+
+// ResetPassword creates a forgotten password token for a user
+//
+// @Description Create a forgotten password token for a user
+// @Tags				Auth
+// @Accept			json
+// @Produce			json
+// @Param 			request body ResetPasswordRequest true "Reset password data"
+// @Success			204
+// @Failure     500 {object} utils.APIError "Internal server error"
+// @Router			/reset-password [post]
+func ResetPassword(c *fiber.Ctx) error {
+	var request ResetPasswordRequest
+	err := c.BodyParser(&request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	err = validator.Validator.Struct(request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	db := &queries.UserQueries{Pool: database.DB}
+	isValid, err := db.IsForgottenPasswordTokenValidForUser(request.Token, request.ID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	if !isValid {
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+			Error: true,
+			Msg:   "Invalid token",
+		})
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
+
+	err = db.ResetPassword(request.ID, string(hashedPassword))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+			Error: true,
+			Msg:   err.Error(),
+		})
+	}
 
 	return c.SendStatus(fiber.StatusNoContent)
 }

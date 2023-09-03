@@ -513,7 +513,7 @@ func VerifyUserEmail(c *fiber.Ctx) error {
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	isValid, err := db.IsTokenValidForUser(token, id)
+	isValid, err := db.IsEmailVerificationTokenValidForUser(token, id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error: true,
@@ -524,7 +524,7 @@ func VerifyUserEmail(c *fiber.Ctx) error {
 	if !isValid {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error: true,
-			Msg:   "invalid token",
+			Msg:   "Invalid token",
 		})
 	}
 

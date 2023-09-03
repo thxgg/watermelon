@@ -59,7 +59,7 @@ func (q *UserQueries) DeleteUser(id uuid.UUID) error {
 	return err
 }
 
-func (q *UserQueries) IsTokenValidForUser(token uuid.UUID, id uuid.UUID) (bool, error) {
+func (q *UserQueries) IsEmailVerificationTokenValidForUser(token uuid.UUID, id uuid.UUID) (bool, error) {
 	var res struct {
 		Exists bool
 	}
@@ -84,6 +84,35 @@ func (q *UserQueries) VerifyUser(id uuid.UUID) error {
 	}
 
 	_, err = q.Exec(context.Background(), "UPDATE users SET is_verified=TRUE WHERE id=$1", id)
+
+	return err
+}
+
+func (q *UserQueries) IsForgottenPasswordTokenValidForUser(token uuid.UUID, id uuid.UUID) (bool, error) {
+	var res struct {
+		Exists bool
+	}
+
+	err := pgxscan.Get(context.Background(), q, &res, "SELECT EXISTS (SELECT TRUE FROM forgotten_passwords WHERE token=$1 AND user_id=$2 AND expires_at > NOW())", token, id)
+
+	return res.Exists, err
+}
+
+func (q *UserQueries) CreateForgottenPassword(fp *models.ForgottenPassword) (models.ForgottenPassword, error) {
+	var forgottenPassword models.ForgottenPassword
+
+	err := pgxscan.Get(context.Background(), q, &forgottenPassword, "INSERT INTO forgotten_passwords (user_id, token) VALUES ($1, $2) RETURNING *", fp.UserID, fp.Token)
+
+	return forgottenPassword, err
+}
+
+func (q *UserQueries) ResetPassword(id uuid.UUID, password string) error {
+	_, err := q.Exec(context.Background(), "DELETE FROM forgotten_passwords WHERE user_id=$1", id)
+	if err != nil {
+		return err
+	}
+
+	_, err = q.Exec(context.Background(), "UPDATE users SET password=$2 WHERE id=$1", id, password)
 
 	return err
 }

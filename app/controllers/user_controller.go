@@ -28,8 +28,8 @@ func GetSelf(c *fiber.Ctx) error {
 	user, err := db.GetUser(session.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -62,8 +62,8 @@ func UpdateSelf(c *fiber.Ctx) error {
 	user, err := db.GetUser(session.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -71,15 +71,16 @@ func UpdateSelf(c *fiber.Ctx) error {
 	err = c.BodyParser(&request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
+
 	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -89,8 +90,8 @@ func UpdateSelf(c *fiber.Ctx) error {
 	user, err = db.UpdateUser(session.UserID, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -123,8 +124,8 @@ func ChangePassword(c *fiber.Ctx) error {
 	user, err := db.GetUser(session.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -132,38 +133,40 @@ func ChangePassword(c *fiber.Ctx) error {
 	err = c.BodyParser(&request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
+
 	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword)) != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   "invalid password",
+			Error:   true,
+			Message: "Incorrect password",
 		})
 	}
 
 	newPassword, err := bcrypt.GenerateFromPassword([]byte(request.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
+
 	user.Password = string(newPassword)
 	user, err = db.UpdateUser(session.UserID, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -188,8 +191,8 @@ func DeleteSelf(c *fiber.Ctx) error {
 	err := db.DeleteUser(session.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -212,8 +215,8 @@ func GetUsers(c *fiber.Ctx) error {
 
 	if !session.IsAdmin {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   "Unauthorized",
+			Error:   true,
+			Message: "Unauthorized",
 		})
 	}
 
@@ -221,8 +224,8 @@ func GetUsers(c *fiber.Ctx) error {
 	users, err := db.GetUsers()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -247,8 +250,8 @@ func GetUser(c *fiber.Ctx) error {
 
 	if !session.IsAdmin {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   "Unauthorized",
+			Error:   true,
+			Message: "Unauthorized",
 		})
 	}
 
@@ -256,16 +259,16 @@ func GetUser(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	user, err := db.GetUser(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -291,8 +294,8 @@ func UpdateUser(c *fiber.Ctx) error {
 
 	if !session.IsAdmin {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   "Unauthorized",
+			Error:   true,
+			Message: "Unauthorized",
 		})
 	}
 
@@ -300,23 +303,23 @@ func UpdateUser(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	user, err := db.GetUser(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -324,15 +327,15 @@ func UpdateUser(c *fiber.Ctx) error {
 	err = c.BodyParser(&request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -342,8 +345,8 @@ func UpdateUser(c *fiber.Ctx) error {
 	user, err = db.UpdateUser(id, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -368,8 +371,8 @@ func DeleteUser(c *fiber.Ctx) error {
 
 	if !session.IsAdmin {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
-			Error: true,
-			Msg:   "Unauthorized",
+			Error:   true,
+			Message: "Unauthorized",
 		})
 	}
 
@@ -377,16 +380,16 @@ func DeleteUser(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	err = db.DeleteUser(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -409,16 +412,16 @@ func VerifyUserEmail(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	token, err := uuid.Parse(c.Query("token"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -426,23 +429,23 @@ func VerifyUserEmail(c *fiber.Ctx) error {
 	isValid, err := db.IsEmailVerificationTokenValidForUser(token, id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	if !isValid {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   "Invalid token",
+			Error:   true,
+			Message: "Invalid token",
 		})
 	}
 
 	err = db.VerifyUser(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 

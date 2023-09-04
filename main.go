@@ -37,6 +37,7 @@ func main() {
 	log.Debug("Setting up routes")
 	api := app.Group("/api")
 	routes.SwaggerRoute(api)
+	routes.MonitorRoute(api)
 	routes.PublicRoutes(api)
 	routes.PrivateRoutes(api)
 	routes.NotFoundRoute(api)

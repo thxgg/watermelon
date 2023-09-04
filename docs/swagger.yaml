@@ -90,7 +90,7 @@ definitions:
     properties:
       error:
         type: boolean
-      msg:
+      message:
         type: string
     type: object
 info:

@@ -7,7 +7,7 @@ import (
 	_ "github.com/thxgg/watermelon/docs"
 )
 
-func SwaggerRoute(a fiber.Router) {
+func SwaggerRoute(r fiber.Router) {
 	log.Debug("Setting up Swagger route")
-	a.Get("/swagger/*", swagger.HandlerDefault)
+	r.Get("/swagger/*", swagger.HandlerDefault)
 }

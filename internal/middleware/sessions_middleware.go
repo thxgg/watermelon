@@ -32,36 +32,41 @@ func Protected() func(*fiber.Ctx) error {
 
 		err := validator.Validator.Var(sessionID, "required,uuid4")
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Unauthorized",
+			return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
+				Error:   true,
+				Message: "Invalid session ID",
 			})
 		}
 
 		exists := SessionsDB.Exists(context.Background(), sessionID)
 		if exists.Err() != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Unauthorized",
+			return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
+				Error:   true,
+				Message: "Invalid session ID",
 			})
 		}
 
 		sessionMap := SessionsDB.HGetAll(context.Background(), sessionID)
 		if sessionMap.Err() != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Unauthorized",
+			return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
+				Error:   true,
+				Message: "Invalid session ID",
 			})
 		}
 
 		var session utils.Session
 		err = sessionMap.Scan(&session)
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Unauthorized",
+			return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
+				Error:   true,
+				Message: "Invalid session ID",
 			})
 		}
 		userID, err := uuid.Parse(session.UserIDString)
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Unauthorized",
+			return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
+				Error:   true,
+				Message: "Invalid session ID",
 			})
 		}
 		session.UserID = userID

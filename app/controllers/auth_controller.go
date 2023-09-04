@@ -72,23 +72,24 @@ func Register(c *fiber.Ctx) error {
 	err := c.BodyParser(&request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
+
 	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -100,8 +101,8 @@ func Register(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -111,24 +112,24 @@ func Register(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	err = utils.SendEmailVerificationEmail(&user, uev)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	err = createSession(c, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -158,40 +159,41 @@ func Login(c *fiber.Ctx) error {
 	err := c.BodyParser(&request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
+
 	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
 	user, err := db.GetUserByEmail(request.Email)
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": true,
-			"msg":   "Invalid credentials",
+		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
+			Error:   true,
+			Message: "Invalid credentials",
 		})
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": true,
-			"msg":   "Invalid credentials",
+		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
+			Error:   true,
+			Message: "Invalid credentials",
 		})
 	}
 
 	err = createSession(c, &user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -238,8 +240,8 @@ func ForgottenPassword(c *fiber.Ctx) error {
 	err := validator.Validator.Var(email, "required,email")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -247,8 +249,8 @@ func ForgottenPassword(c *fiber.Ctx) error {
 	user, err := db.GetUserByEmail(email)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -258,16 +260,16 @@ func ForgottenPassword(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	err = utils.SendForgottenPasswordEmail(&user, fp)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -296,16 +298,16 @@ func ResetPassword(c *fiber.Ctx) error {
 	err := c.BodyParser(&request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	err = validator.Validator.Struct(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
@@ -313,31 +315,31 @@ func ResetPassword(c *fiber.Ctx) error {
 	isValid, err := db.IsForgottenPasswordTokenValidForUser(request.Token, request.ID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	if !isValid {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
-			Error: true,
-			Msg:   "Invalid token",
+			Error:   true,
+			Message: "Invalid token",
 		})
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 
 	err = db.ResetPassword(request.ID, string(hashedPassword))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
-			Error: true,
-			Msg:   err.Error(),
+			Error:   true,
+			Message: err.Error(),
 		})
 	}
 

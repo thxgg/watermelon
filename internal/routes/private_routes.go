@@ -7,20 +7,20 @@ import (
 	"github.com/thxgg/watermelon/internal/middleware"
 )
 
-func PrivateRoutes(a fiber.Router) {
+func PrivateRoutes(r fiber.Router) {
 	log.Debug("Setting up private routes")
 	// Auth
-	a.Delete("/logout", middleware.Protected(), controllers.Logout)
+	r.Delete("/logout", middleware.Protected(), controllers.Logout)
 
 	// Me
-	meGroup := a.Group("/me", middleware.Protected())
+	meGroup := r.Group("/me", middleware.Protected())
 	meGroup.Get("/", controllers.GetSelf)
 	meGroup.Put("/", controllers.UpdateSelf)
 	meGroup.Put("/password", controllers.ChangePassword)
 	meGroup.Delete("/", controllers.DeleteSelf)
 
 	// Users
-	userGroup := a.Group("/users", middleware.Protected())
+	userGroup := r.Group("/users", middleware.Protected())
 	userGroup.Get("/", controllers.GetUsers)
 	userGroup.Get("/:id", controllers.GetUser)
 	userGroup.Put("/:id", controllers.UpdateUser)

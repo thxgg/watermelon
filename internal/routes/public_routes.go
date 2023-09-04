@@ -6,14 +6,14 @@ import (
 	"github.com/thxgg/watermelon/app/controllers"
 )
 
-func PublicRoutes(a fiber.Router) {
+func PublicRoutes(r fiber.Router) {
 	log.Debug("Setting up public routes")
 	// Auth
-	a.Post("/register", controllers.Register)
-	a.Post("/login", controllers.Login)
-	a.Post("/forgotten-passowrd", controllers.ForgottenPassword)
-	a.Post("/reset-password", controllers.ResetPassword)
+	r.Post("/register", controllers.Register)
+	r.Post("/login", controllers.Login)
+	r.Post("/forgotten-passowrd", controllers.ForgottenPassword)
+	r.Post("/reset-password", controllers.ResetPassword)
 
 	// Users
-	a.Get("/users/:id/verify", controllers.VerifyUserEmail)
+	r.Get("/users/:id/verify", controllers.VerifyUserEmail)
 }

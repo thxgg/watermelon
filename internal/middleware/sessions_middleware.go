@@ -6,23 +6,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
-	"github.com/thxgg/watermelon/config"
 	"github.com/thxgg/watermelon/internal/utils"
 	"github.com/thxgg/watermelon/internal/validator"
+	"github.com/thxgg/watermelon/platform/database"
 )
-
-var SessionsDB *redis.Client
-
-func init() {
-	log.Debug("Setting up sessions database")
-	opt, err := redis.ParseURL(config.Config.Sessions.Database)
-	if err != nil {
-		log.Fatal("Failed to parse sessions database URL")
-	}
-
-	SessionsDB = redis.NewClient(opt)
-}
 
 func Protected() func(*fiber.Ctx) error {
 	log.Debug("Setting up sessions middleware")
@@ -38,7 +25,7 @@ func Protected() func(*fiber.Ctx) error {
 			})
 		}
 
-		exists := SessionsDB.Exists(context.Background(), sessionID)
+		exists := database.SessionsDB.Exists(context.Background(), sessionID)
 		if exists.Err() != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 				Error:   true,
@@ -46,7 +33,7 @@ func Protected() func(*fiber.Ctx) error {
 			})
 		}
 
-		sessionMap := SessionsDB.HGetAll(context.Background(), sessionID)
+		sessionMap := database.SessionsDB.HGetAll(context.Background(), sessionID)
 		if sessionMap.Err() != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 				Error:   true,

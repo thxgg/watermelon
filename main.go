@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/thxgg/watermelon/config"
+	"github.com/thxgg/watermelon/internal/email"
 	"github.com/thxgg/watermelon/internal/middleware"
 	"github.com/thxgg/watermelon/internal/routes"
 	"github.com/thxgg/watermelon/internal/utils"
@@ -20,12 +22,29 @@ import (
 // @description This is the session ID
 // @BasePath /
 func main() {
+	// Setup config
+	config.Setup()
+
 	// Connect to the database
 	err := database.Connect()
 	if err != nil {
 		log.Fatal("Failed to connect to the database")
 	}
 	defer database.DB.Close()
+
+	// Connect to the sessions database
+	err = database.ConnectSessionsDB()
+	if err != nil {
+		log.Fatal("Failed to connect to the sessions database")
+	}
+	defer database.SessionsDB.Close()
+
+	// Setup email client
+	err = email.SetupEmailClient()
+	if err != nil {
+		log.Fatal("Failed to setup email client")
+	}
+	defer email.CloseEmailClient()
 
 	// Configure the Fiber app
 	app := fiber.New()

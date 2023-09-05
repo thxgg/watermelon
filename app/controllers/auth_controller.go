@@ -10,7 +10,7 @@ import (
 	"github.com/thxgg/watermelon/app/models"
 	"github.com/thxgg/watermelon/app/queries"
 	"github.com/thxgg/watermelon/config"
-	"github.com/thxgg/watermelon/internal/middleware"
+	"github.com/thxgg/watermelon/internal/email"
 	"github.com/thxgg/watermelon/internal/utils"
 	"github.com/thxgg/watermelon/internal/validator"
 	"github.com/thxgg/watermelon/platform/database"
@@ -27,13 +27,13 @@ func createSession(c *fiber.Ctx, user *models.User) error {
 		IsAdmin:      user.IsAdmin,
 	}
 
-	setRes := middleware.SessionsDB.HSet(context.Background(), sessionID, session)
+	setRes := database.SessionsDB.HSet(context.Background(), sessionID, session)
 	if setRes.Err() != nil {
 		log.Errorf("Error setting session details for user '%s': %s", user.ID, setRes.Err())
 		return setRes.Err()
 	}
 
-	expireRes := middleware.SessionsDB.ExpireAt(context.Background(), sessionID, expiresAt)
+	expireRes := database.SessionsDB.ExpireAt(context.Background(), sessionID, expiresAt)
 	if expireRes.Err() != nil {
 		log.Errorf("Error setting session expiration for user '%s': %s", user.ID, expireRes.Err())
 		return expireRes.Err()
@@ -117,7 +117,7 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	err = utils.SendEmailVerificationEmail(&user, uev)
+	err = email.SendEmailVerificationEmail(&user, uev)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error:   true,
@@ -212,7 +212,7 @@ func Login(c *fiber.Ctx) error {
 func Logout(c *fiber.Ctx) error {
 	sessionID := c.Cookies("sessionID")
 
-	middleware.SessionsDB.HDel(context.Background(), sessionID)
+	database.SessionsDB.HDel(context.Background(), sessionID)
 	// c.ClearCookie("sessionID") seems to be broken, this is a workaround that mimics the internals of ClearCookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "sessionID",
@@ -236,8 +236,8 @@ func Logout(c *fiber.Ctx) error {
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/forgotten-password [post]
 func ForgottenPassword(c *fiber.Ctx) error {
-	email := c.Query("email")
-	err := validator.Validator.Var(email, "required,email")
+	userEmail := c.Query("email")
+	err := validator.Validator.Var(userEmail, "required,email")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error:   true,
@@ -246,7 +246,7 @@ func ForgottenPassword(c *fiber.Ctx) error {
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	user, err := db.GetUserByEmail(email)
+	user, err := db.GetUserByEmail(userEmail)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error:   true,
@@ -265,7 +265,7 @@ func ForgottenPassword(c *fiber.Ctx) error {
 		})
 	}
 
-	err = utils.SendForgottenPasswordEmail(&user, fp)
+	err = email.SendForgottenPasswordEmail(&user, fp)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error:   true,

@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/thxgg/watermelon/config"
 	pgxuuid "github.com/vgarvardt/pgx-google-uuid/v5"
 )
@@ -28,5 +29,18 @@ func Connect() error {
 	}
 
 	DB = pool
+	return nil
+}
+
+var SessionsDB *redis.Client
+
+func ConnectSessionsDB() error {
+	log.Debug("Setting up sessions database")
+	opt, err := redis.ParseURL(config.Config.Sessions.Database)
+	if err != nil {
+		return err
+	}
+
+	SessionsDB = redis.NewClient(opt)
 	return nil
 }

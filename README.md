@@ -46,6 +46,10 @@ Database migrations are handled by [tern](https://github.com/jackc/tern). All re
 
 The server is built using the Go [Fiber](https://github.com/gofiber/fiber) framework.
 
+### Environment
+
+Environment variables are loaded using the [godotenv](https://github.com/joho/godotenv) bin command.
+
 ### Swagger
 
 API documentation is handled by [Swagger](https://github.com/gofiber/swagger). To generate latest API docs, run `scripts/swagger.sh`.
@@ -61,3 +65,13 @@ Validation is handled by [validator](https://github.com/go-playground/validator)
 ### Email
 
 Emails are sent using [go-mail](https://github.com/wneessen/go-mail). The SMTP configuration is defined by the `SMTP_*` environment variables. Templates are stored in the `templates` directory and are rendered using [html/template](https://pkg.go.dev/html/template).
+
+## Testing
+
+To run the tests, setup the `.env.test` file and run `scripts/test.sh`.
+
+## Development
+
+### Starting the server
+
+To start the server, setup the `.env` file and run `scripts/run.sh`.

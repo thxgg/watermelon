@@ -1,4 +1,4 @@
-package utils
+package email
 
 import (
 	"fmt"
@@ -13,14 +13,24 @@ import (
 
 var emailClient *mail.Client
 
-func init() {
+func SetupEmailClient() error {
 	log.Debug("Setting up email client")
-	client, err := mail.NewClient(config.Config.Email.Host, mail.WithPort(config.Config.Email.Port), mail.WithSSL(), mail.WithSMTPAuth(mail.SMTPAuthLogin), mail.WithUsername(config.Config.Email.Username), mail.WithPassword(config.Config.Email.Password))
+	clientOptions := []mail.Option{mail.WithPort(config.Config.Email.Port), mail.WithSMTPAuth(mail.SMTPAuthLogin), mail.WithUsername(config.Config.Email.Username), mail.WithPassword(config.Config.Email.Password)}
+	if config.Config.Email.SSL {
+		clientOptions = append(clientOptions, mail.WithSSL())
+	}
+	client, err := mail.NewClient(config.Config.Email.Host, clientOptions...)
 	if err != nil {
-		log.Fatal("Failed to setup email client")
+		return err
 	}
 
 	emailClient = client
+	return nil
+}
+
+func CloseEmailClient() {
+	log.Debug("Closing email client")
+	emailClient.Close()
 }
 
 func SendEmail(to string, subject string, templateName string, body interface{}) error {

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2/log"
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/thxgg/watermelon/internal/validator"
 )
 
@@ -21,6 +20,7 @@ type EmailConfig struct {
 	Username string
 	Password string
 	From     string `validate:"email"`
+	SSL      bool
 }
 
 type config struct {
@@ -32,7 +32,7 @@ type config struct {
 
 var Config config
 
-func init() {
+func Setup() {
 	log.Debug("Loading configuration")
 	// Database
 	Config.Database = loadEnvVar("DATABASE_URL")
@@ -52,12 +52,17 @@ func init() {
 	if err != nil {
 		log.Panicf("Failed to parse SMTP port: %s", err)
 	}
+	smtpSSL, err := strconv.ParseBool(loadEnvVar("SMTP_SSL"))
+	if err != nil {
+		log.Panicf("Failed to parse SMTP SSL: %s", err)
+	}
 	Config.Email = EmailConfig{
 		Host:     loadEnvVar("SMTP_HOST"),
 		Port:     smtpPort,
 		Username: loadEnvVar("SMTP_USERNAME"),
 		Password: loadEnvVar("SMTP_PASSWORD"),
 		From:     loadEnvVar("SMTP_FROM"),
+		SSL:      smtpSSL,
 	}
 
 	// App

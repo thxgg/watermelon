@@ -8,7 +8,6 @@ require (
 	github.com/gofiber/swagger v0.1.12
 	github.com/google/uuid v1.3.1
 	github.com/jackc/pgx/v5 v5.4.3
-	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/swaggo/swag v1.16.1
 	github.com/vgarvardt/pgx-google-uuid/v5 v5.0.0

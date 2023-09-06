@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+echo "Running database migrations"
+godotenv -f ".env.test" tern migrate --config ./platform/migrations/tern.conf --migrations ./platform/migrations
+echo "Database migrations complete"
+
 log_flag=false
 
 while [ $# -gt 0 ]; do

@@ -36,7 +36,7 @@ A main [PostgreSQL](https://www.postgresql.org/) and a secondary [Redis](https:/
 
 ### Migrations
 
-Database migrations are handled by [tern](https://github.com/jackc/tern). All relevant migration files (including configuration and the migration scripts themselves) are stored in `platform/migrations`. To migrate, ensure the `DATABASE_URL` env var is set to the connection string to the database and run `scripts/migrate.sh`.
+Database migrations are handled by [tern](https://github.com/jackc/tern). All relevant migration files (including configuration and the migration scripts themselves) are stored in `platform/migrations`. Upon starting the server via `scripts/run.sh` or testing via `scripts/test.sh` the migrations are automatically run. To migrate manually, ensure the `DATABASE_URL` env var is set to the connection string to the database and run `scripts/migrate.sh`.
 
 ### Scanning
 

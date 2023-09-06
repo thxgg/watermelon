@@ -19,7 +19,7 @@ import (
 // @Success			200	{object} models.User
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/me [get]
+// @Router			/me [get]
 // @Security    SessionID
 func GetSelf(c *fiber.Ctx) error {
 	session := c.Locals("session").(utils.Session)
@@ -53,7 +53,7 @@ type UserUpdateRequest struct {
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/me [put]
+// @Router			/me [put]
 // @Security    SessionID
 func UpdateSelf(c *fiber.Ctx) error {
 	session := c.Locals("session").(utils.Session)
@@ -115,7 +115,7 @@ type ChangePasswordRequest struct {
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/me/password [put]
+// @Router			/me/password [put]
 // @Security    SessionID
 func ChangePassword(c *fiber.Ctx) error {
 	session := c.Locals("session").(utils.Session)
@@ -182,7 +182,7 @@ func ChangePassword(c *fiber.Ctx) error {
 // @Success			204
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/me [delete]
+// @Router			/me [delete]
 // @Security    SessionID
 func DeleteSelf(c *fiber.Ctx) error {
 	session := c.Locals("session").(utils.Session)
@@ -208,7 +208,7 @@ func DeleteSelf(c *fiber.Ctx) error {
 // @Success			200	{array}	models.User
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/users [get]
+// @Router			/users [get]
 // @Security    SessionID
 func GetUsers(c *fiber.Ctx) error {
 	session := c.Locals("session").(utils.Session)
@@ -243,7 +243,7 @@ func GetUsers(c *fiber.Ctx) error {
 // @Failure			400 {object} utils.APIError "Bad request"
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/users/{id} [get]
+// @Router			/users/{id} [get]
 // @Security    SessionID
 func GetUser(c *fiber.Ctx) error {
 	session := c.Locals("session").(utils.Session)
@@ -287,7 +287,7 @@ func GetUser(c *fiber.Ctx) error {
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/users/{id} [put]
+// @Router			/users/{id} [put]
 // @Security    SessionID
 func UpdateUser(c *fiber.Ctx) error {
 	session := c.Locals("session").(utils.Session)
@@ -364,7 +364,7 @@ func UpdateUser(c *fiber.Ctx) error {
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     401 {object} utils.APIError "Unauthorized"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/users/{id} [delete]
+// @Router			/users/{id} [delete]
 // @Security    SessionID
 func DeleteUser(c *fiber.Ctx) error {
 	session := c.Locals("session").(utils.Session)
@@ -407,7 +407,7 @@ func DeleteUser(c *fiber.Ctx) error {
 // @Success			204
 // @Failure			400 {object} utils.APIError "Bad request"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/users/{id}/verify [get]
+// @Router			/users/{id}/verify [get]
 func VerifyUserEmail(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {

@@ -9,7 +9,8 @@ OR REPLACE FUNCTION delete_expired_forgotten_password_tokens() RETURNS TRIGGER A
 DELETE FROM
   forgotten_passwords
 WHERE
-  expires_at < NOW();
+  expires_at IS NOT NULL
+  AND expires_at < NOW();
 RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -17,7 +18,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER delete_expired_forgotten_password_tokens_trigger BEFORE INSERT
 OR
 UPDATE
-  ON forgotten_passwords FOR EACH ROW EXECUTE FUNCTION delete_expired_forgotten_password_tokens();
+  ON forgotten_passwords EXECUTE FUNCTION delete_expired_forgotten_password_tokens();
 ---- create above / drop below ----
 DROP
   TRIGGER delete_expired_forgotten_password_tokens_trigger ON forgotten_passwords;

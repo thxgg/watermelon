@@ -11,7 +11,7 @@ func PublicRoutes(r fiber.Router) {
 	// Auth
 	r.Post("/register", controllers.Register)
 	r.Post("/login", controllers.Login)
-	r.Post("/forgotten-passowrd", controllers.ForgottenPassword)
+	r.Post("/forgotten-password", controllers.ForgottenPassword)
 	r.Post("/reset-password", controllers.ResetPassword)
 
 	// Users

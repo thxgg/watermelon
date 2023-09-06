@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -13,9 +15,13 @@ func FiberMiddleware(a *fiber.App) {
 	a.Use(
 		cors.New(),
 		recover.New(),
-		logger.New(logger.Config{
-			Format:   "{ \"timestamp\": \"${time}\", \"pid\": \"${pid}\", \"status\": \"${status}\", \"latency\": \"${latency}\", \"method\": \"${method}\", \"path\": \"${path}\", \"error\": \"${error}\" }\n",
-			TimeZone: "UTC",
-		}),
 	)
+	if os.Getenv("WATERMELON_ENV") != "test" || os.Getenv("WATERMELON_TEST_LOG") == "true" {
+		a.Use(
+			logger.New(logger.Config{
+				Format:   "{ \"timestamp\": \"${time}\", \"pid\": \"${pid}\", \"status\": \"${status}\", \"latency\": \"${latency}\", \"method\": \"${method}\", \"path\": \"${path}\", \"error\": \"${error}\" }\n",
+				TimeZone: "UTC",
+			}),
+		)
+	}
 }

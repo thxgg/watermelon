@@ -66,7 +66,7 @@ type RegisterRequest struct {
 // @Success			201
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/register [post]
+// @Router			/register [post]
 func Register(c *fiber.Ctx) error {
 	var request RegisterRequest
 	err := c.BodyParser(&request)
@@ -153,7 +153,7 @@ type LoginRequest struct {
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     401 {object} utils.APIError "Invalid credentials"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/api/login [post]
+// @Router			/login [post]
 func Login(c *fiber.Ctx) error {
 	var request LoginRequest
 	err := c.BodyParser(&request)
@@ -207,7 +207,7 @@ func Login(c *fiber.Ctx) error {
 // @Accept			json
 // @Produce			json
 // @Success			204
-// @Router			/api/logout [delete]
+// @Router			/logout [delete]
 // @Security    SessionID
 func Logout(c *fiber.Ctx) error {
 	sessionID := c.Cookies("sessionID")
@@ -233,6 +233,7 @@ func Logout(c *fiber.Ctx) error {
 // @Produce			json
 // @Param 			email query string true "User's email address"
 // @Success			204
+// @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/forgotten-password [post]
 func ForgottenPassword(c *fiber.Ctx) error {
@@ -248,7 +249,7 @@ func ForgottenPassword(c *fiber.Ctx) error {
 	db := &queries.UserQueries{Pool: database.DB}
 	user, err := db.GetUserByEmail(userEmail)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error:   true,
 			Message: err.Error(),
 		})
@@ -278,7 +279,7 @@ func ForgottenPassword(c *fiber.Ctx) error {
 
 // ResetPasswordRequest represents the data needed to reset a user's password
 type ResetPasswordRequest struct {
-	ID       uuid.UUID `json:"id" validate:"required,uuid4"`
+	UserID   uuid.UUID `json:"user_id" validate:"required,uuid4"`
 	Token    uuid.UUID `json:"token" validate:"required,uuid4"`
 	Password string    `json:"password" validate:"required,min=8,max=32"`
 }
@@ -291,6 +292,8 @@ type ResetPasswordRequest struct {
 // @Produce			json
 // @Param 			request body ResetPasswordRequest true "Reset password data"
 // @Success			204
+// @Failure     400 {object} utils.APIError "Invalid request"
+// @Failure     401 {object} utils.APIError "Invalid token"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/reset-password [post]
 func ResetPassword(c *fiber.Ctx) error {
@@ -312,7 +315,7 @@ func ResetPassword(c *fiber.Ctx) error {
 	}
 
 	db := &queries.UserQueries{Pool: database.DB}
-	isValid, err := db.IsForgottenPasswordTokenValidForUser(request.Token, request.ID)
+	isValid, err := db.IsForgottenPasswordTokenValidForUser(request.Token, request.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error:   true,
@@ -321,7 +324,7 @@ func ResetPassword(c *fiber.Ctx) error {
 	}
 
 	if !isValid {
-		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
+		return c.Status(fiber.StatusUnauthorized).JSON(utils.APIError{
 			Error:   true,
 			Message: "Invalid token",
 		})
@@ -335,7 +338,7 @@ func ResetPassword(c *fiber.Ctx) error {
 		})
 	}
 
-	err = db.ResetPassword(request.ID, string(hashedPassword))
+	err = db.ResetPassword(request.UserID, string(hashedPassword))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error:   true,

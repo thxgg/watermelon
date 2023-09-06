@@ -19,7 +19,47 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/login": {
+        "/forgotten-password": {
+            "post": {
+                "description": "Create a forgotten password token for a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User's email address",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
             "post": {
                 "description": "Create a new session for the user",
                 "consumes": [
@@ -67,7 +107,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/logout": {
+        "/logout": {
             "delete": {
                 "security": [
                     {
@@ -91,7 +131,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/me": {
+        "/me": {
             "get": {
                 "security": [
                     {
@@ -218,7 +258,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/me/password": {
+        "/me/password": {
             "put": {
                 "security": [
                     {
@@ -271,7 +311,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/register": {
+        "/register": {
             "post": {
                 "description": "Create a new user",
                 "consumes": [
@@ -313,7 +353,55 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users": {
+        "/reset-password": {
+            "post": {
+                "description": "Create a forgotten password token for a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "parameters": [
+                    {
+                        "description": "Reset password data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid token",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/users": {
             "get": {
                 "security": [
                     {
@@ -355,7 +443,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{id}": {
+        "/users/{id}": {
             "get": {
                 "security": [
                     {
@@ -519,7 +607,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/{id}/verify": {
+        "/users/{id}/verify": {
             "get": {
                 "description": "Verify a user's email given a token",
                 "consumes": [
@@ -556,76 +644,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/utils.APIError"
                         }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.APIError"
-                        }
-                    }
-                }
-            }
-        },
-        "/forgotten-password": {
-            "post": {
-                "description": "Create a forgotten password token for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User's email address",
-                        "name": "email",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.APIError"
-                        }
-                    }
-                }
-            }
-        },
-        "/reset-password": {
-            "post": {
-                "description": "Create a forgotten password token for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "parameters": [
-                    {
-                        "description": "Reset password data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controllers.ResetPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
                     },
                     "500": {
                         "description": "Internal server error",
@@ -700,20 +718,20 @@ const docTemplate = `{
         "controllers.ResetPasswordRequest": {
             "type": "object",
             "required": [
-                "id",
                 "password",
-                "token"
+                "token",
+                "user_id"
             ],
             "properties": {
-                "id": {
-                    "type": "string"
-                },
                 "password": {
                     "type": "string",
                     "maxLength": 32,
                     "minLength": 8
                 },
                 "token": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }
@@ -787,7 +805,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "",
+	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "Watermelon API",
 	Description:      "This is the API for Watermelon",

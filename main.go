@@ -8,6 +8,7 @@ import (
 	"github.com/thxgg/watermelon/internal/middleware"
 	"github.com/thxgg/watermelon/internal/routes"
 	"github.com/thxgg/watermelon/internal/utils"
+	"github.com/thxgg/watermelon/internal/validator"
 	"github.com/thxgg/watermelon/platform/database"
 )
 
@@ -16,14 +17,17 @@ import (
 // @description This is the API for Watermelon
 // @contact.name Georgi Georgiev
 // @contact.email gatanasovgeorgiev@gmail.com
+// @BasePath /api
 // @securityDefinitions.apikey SessionID
 // @in cookie
 // @name sessionID
 // @description This is the session ID
-// @BasePath /
 func main() {
 	// Setup config
 	config.Setup()
+
+	// Setup validator
+	validator.Setup()
 
 	// Connect to the database
 	err := database.Connect()

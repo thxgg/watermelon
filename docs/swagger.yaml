@@ -1,3 +1,4 @@
+basePath: /api
 definitions:
   controllers.ChangePasswordRequest:
     properties:
@@ -44,18 +45,18 @@ definitions:
     type: object
   controllers.ResetPasswordRequest:
     properties:
-      id:
-        type: string
       password:
         maxLength: 32
         minLength: 8
         type: string
       token:
         type: string
+      user_id:
+        type: string
     required:
-    - id
     - password
     - token
+    - user_id
     type: object
   controllers.UserUpdateRequest:
     properties:
@@ -101,7 +102,33 @@ info:
   title: Watermelon API
   version: "1.0"
 paths:
-  /api/login:
+  /forgotten-password:
+    post:
+      consumes:
+      - application/json
+      description: Create a forgotten password token for a user
+      parameters:
+      - description: User's email address
+        in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      tags:
+      - Auth
+  /login:
     post:
       consumes:
       - application/json
@@ -132,7 +159,7 @@ paths:
             $ref: '#/definitions/utils.APIError'
       tags:
       - Auth
-  /api/logout:
+  /logout:
     delete:
       consumes:
       - application/json
@@ -146,7 +173,7 @@ paths:
       - SessionID: []
       tags:
       - Auth
-  /api/me:
+  /me:
     delete:
       consumes:
       - application/json
@@ -225,7 +252,7 @@ paths:
       - SessionID: []
       tags:
       - User
-  /api/me/password:
+  /me/password:
     put:
       consumes:
       - application/json
@@ -258,7 +285,7 @@ paths:
       - SessionID: []
       tags:
       - User
-  /api/register:
+  /register:
     post:
       consumes:
       - application/json
@@ -285,7 +312,38 @@ paths:
             $ref: '#/definitions/utils.APIError'
       tags:
       - Auth
-  /api/users:
+  /reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Create a forgotten password token for a user
+      parameters:
+      - description: Reset password data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "401":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      tags:
+      - Auth
+  /users:
     get:
       consumes:
       - application/json
@@ -311,7 +369,7 @@ paths:
       - SessionID: []
       tags:
       - User
-  /api/users/{id}:
+  /users/{id}:
     delete:
       consumes:
       - application/json
@@ -415,7 +473,7 @@ paths:
       - SessionID: []
       tags:
       - User
-  /api/users/{id}/verify:
+  /users/{id}/verify:
     get:
       consumes:
       - application/json
@@ -446,51 +504,6 @@ paths:
             $ref: '#/definitions/utils.APIError'
       tags:
       - User
-  /forgotten-password:
-    post:
-      consumes:
-      - application/json
-      description: Create a forgotten password token for a user
-      parameters:
-      - description: User's email address
-        in: query
-        name: email
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/utils.APIError'
-      tags:
-      - Auth
-  /reset-password:
-    post:
-      consumes:
-      - application/json
-      description: Create a forgotten password token for a user
-      parameters:
-      - description: Reset password data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/controllers.ResetPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/utils.APIError'
-      tags:
-      - Auth
 securityDefinitions:
   SessionID:
     description: This is the session ID

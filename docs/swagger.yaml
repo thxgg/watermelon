@@ -426,6 +426,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/utils.APIError'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/utils.APIError'
         "500":
           description: Internal server error
           schema:
@@ -465,6 +469,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/utils.APIError'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/utils.APIError'
         "500":
           description: Internal server error
           schema:
@@ -474,7 +482,7 @@ paths:
       tags:
       - User
   /users/{id}/verify:
-    get:
+    put:
       consumes:
       - application/json
       description: Verify a user's email given a token

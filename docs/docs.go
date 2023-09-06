@@ -488,6 +488,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.APIError"
                         }
                     },
+                    "404": {
+                        "description": "Not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -545,6 +551,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
                         "schema": {
                             "$ref": "#/definitions/utils.APIError"
                         }
@@ -608,7 +620,7 @@ const docTemplate = `{
             }
         },
         "/users/{id}/verify": {
-            "get": {
+            "put": {
                 "description": "Verify a user's email given a token",
                 "consumes": [
                     "application/json"

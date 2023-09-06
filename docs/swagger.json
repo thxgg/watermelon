@@ -480,6 +480,12 @@
                             "$ref": "#/definitions/utils.APIError"
                         }
                     },
+                    "404": {
+                        "description": "Not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -537,6 +543,12 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
                         "schema": {
                             "$ref": "#/definitions/utils.APIError"
                         }
@@ -600,7 +612,7 @@
             }
         },
         "/users/{id}/verify": {
-            "get": {
+            "put": {
                 "description": "Verify a user's email given a token",
                 "consumes": [
                     "application/json"

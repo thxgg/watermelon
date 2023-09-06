@@ -11,7 +11,6 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
 	"github.com/thxgg/watermelon/app/controllers"
 	"github.com/thxgg/watermelon/app/models"
@@ -85,7 +84,6 @@ func TestRegister(t *testing.T) {
 			if tt.wantCode == fiber.StatusCreated {
 				t.Cleanup(func() {
 					// Clean up
-					log.Infof("Cleaning up user %s", tt.req.Email)
 					_, err := database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", tt.req.Email)
 					if err != nil {
 						t.Error(err)

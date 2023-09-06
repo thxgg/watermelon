@@ -11,6 +11,15 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
+const (
+	EmailVerificationSubject  = "Verify your email address"
+	EmailVerificationTemplate = "templates/email_verification.html"
+	EmailVerificationLink     = "/verify?id=%s&token=%s"
+	ForgottenPasswordSubject  = "Forgotten password"
+	ForgottenPasswordTemplate = "templates/forgotten_password.html"
+	ForgottenPasswordLink     = "/reset-password?id=%s&token=%s"
+)
+
 var emailClient *mail.Client
 
 func SetupEmailClient() error {
@@ -72,10 +81,10 @@ func SendEmailVerificationEmail(user *models.User, uev models.UserEmailVerificat
 		Link     string
 	}{
 		Username: user.Username,
-		Link:     fmt.Sprintf("%s/verify?id=%s&token=%s", config.Config.BaseURL, user.ID, uev.Token),
+		Link:     config.Config.BaseURL + fmt.Sprintf(EmailVerificationLink, user.ID, uev.Token),
 	}
 
-	err := SendEmail(user.Email, "Verify your email address", "templates/email_verification.html", data)
+	err := SendEmail(user.Email, EmailVerificationSubject, EmailVerificationTemplate, data)
 	if err != nil {
 		log.Errorf("Failed to send email verification email to %s: %s", user.Email, err)
 		return err
@@ -92,11 +101,11 @@ func SendForgottenPasswordEmail(user *models.User, fp models.ForgottenPassword) 
 		ExpiresAt time.Time
 	}{
 		Username:  user.Username,
-		Link:      fmt.Sprintf("%s/reset-password?id=%s&token=%s", config.Config.BaseURL, user.ID, fp.Token),
+		Link:      config.Config.BaseURL + fmt.Sprintf(ForgottenPasswordLink, user.ID, fp.Token),
 		ExpiresAt: fp.ExpiresAt,
 	}
 
-	err := SendEmail(user.Email, "Forgotten password", "templates/forgotten_password.html", data)
+	err := SendEmail(user.Email, ForgottenPasswordSubject, ForgottenPasswordTemplate, data)
 	if err != nil {
 		log.Errorf("Failed to send forgotten password email to %s: %s", user.Email, err)
 		return err

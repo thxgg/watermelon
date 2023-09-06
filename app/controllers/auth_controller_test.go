@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -16,84 +15,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/thxgg/watermelon/app/controllers"
 	"github.com/thxgg/watermelon/app/models"
-	"github.com/thxgg/watermelon/config"
-	"github.com/thxgg/watermelon/internal/email"
-	"github.com/thxgg/watermelon/internal/middleware"
-	"github.com/thxgg/watermelon/internal/routes"
-	"github.com/thxgg/watermelon/internal/validator"
+	test "github.com/thxgg/watermelon/internal/test_utils"
+	"github.com/thxgg/watermelon/internal/utils"
 	"github.com/thxgg/watermelon/platform/database"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func init() {
-	// Change working directory to the root of the project
-	os.Chdir("../..")
-	if os.Getenv("WATERMELON_TEST_LOG") != "true" {
-		// Disable logging
-		log.SetOutput(io.Discard)
-	}
-}
-
-// setup is run before each test function and sets up the test environment
-func setup(t *testing.T) *fiber.App {
-	// Setup config
-	config.Setup()
-
-	// Setup validator
-	validator.Setup()
-
-	// Connect to the database
-	err := database.Connect()
-	if err != nil {
-		log.Fatal("Failed to connect to the database")
-	}
-	t.Cleanup(func() {
-		database.DB.Close()
-	})
-
-	// Connect to the sessions database
-	err = database.ConnectSessionsDB()
-	if err != nil {
-		log.Fatal("Failed to connect to the sessions database")
-	}
-	t.Cleanup(func() {
-		database.SessionsDB.Close()
-	})
-
-	// Setup email client
-	err = email.SetupEmailClient()
-	if err != nil {
-		log.Fatal("Failed to setup email client")
-	}
-	t.Cleanup(func() {
-		email.CloseEmailClient()
-	})
-
-	// Configure the Fiber app
-	app := fiber.New(fiber.Config{
-		DisableStartupMessage: true,
-	})
-	t.Cleanup(func() {
-		app.Shutdown()
-	})
-
-	// Setup Fiber middleware
-	middleware.FiberMiddleware(app)
-
-	// Setup routes
-	api := app.Group("/api")
-	routes.SwaggerRoute(api)
-	routes.MonitorRoute(api)
-	routes.PublicRoutes(api)
-	routes.PrivateRoutes(api)
-	routes.NotFoundRoute(api)
-
-	return app
-}
-
 // TestRegister tests the register endpoint
 func TestRegister(t *testing.T) {
-	app := setup(t)
+	app := test.SetupTest(t)
 
 	method := "POST"
 	url := "/api/register"
@@ -177,6 +107,18 @@ func TestRegister(t *testing.T) {
 				t.Errorf("Expected status code %d, got %d", tt.wantCode, res.StatusCode)
 			}
 
+			if res.StatusCode == fiber.StatusBadRequest || res.StatusCode == fiber.StatusInternalServerError {
+				var errRes utils.APIError
+				err := json.NewDecoder(res.Body).Decode(&errRes)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if errRes.Message == "" || errRes.Error == false {
+					t.Errorf("Expected error to be true and a non-empty message, got %+v", errRes)
+				}
+			}
+
 			// If the request was successful, check for the side effects
 			if res.StatusCode == fiber.StatusCreated {
 				// Session cookie
@@ -220,7 +162,7 @@ func TestRegister(t *testing.T) {
 
 // TestLogin tests the login endpoint
 func TestLogin(t *testing.T) {
-	app := setup(t)
+	app := test.SetupTest(t)
 
 	// Prepare the database data
 	testPassword := "password"
@@ -230,7 +172,10 @@ func TestLogin(t *testing.T) {
 		Password: string(hashedPassword),
 		Username: "testuser",
 	}
-	database.DB.Exec(context.Background(), "INSERT INTO users (email, password, username) VALUES ($1, $2, $3)", testUser.Email, testUser.Password, testUser.Username)
+	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() {
 		// Clean up
 		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
@@ -271,7 +216,7 @@ func TestLogin(t *testing.T) {
 		},
 		{
 			name:     "Non-existent user",
-			req:      controllers.LoginRequest{Email: "nonexistant@email.com", Password: "password"},
+			req:      controllers.LoginRequest{Email: "nonexistent@email.com", Password: "password"},
 			wantCode: fiber.StatusUnauthorized,
 		},
 		{
@@ -336,7 +281,7 @@ func TestLogin(t *testing.T) {
 
 // TestLogout tests the logout endpoint
 func TestLogout(t *testing.T) {
-	app := setup(t)
+	app := test.SetupTest(t)
 
 	// Prepare the database data
 	testPassword := "password"
@@ -346,7 +291,10 @@ func TestLogout(t *testing.T) {
 		Password: string(hashedPassword),
 		Username: "testuser",
 	}
-	database.DB.Exec(context.Background(), "INSERT INTO users (email, password, username) VALUES ($1, $2, $3)", testUser.Email, testUser.Password, testUser.Username)
+	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() {
 		// Clean up
 		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
@@ -406,21 +354,23 @@ func TestLogout(t *testing.T) {
 
 // TestForgottenPassword tests the forgotten password endpoint
 func TestForgottenPassword(t *testing.T) {
-	app := setup(t)
+	app := test.SetupTest(t)
 
 	// Prepare the database data
 	testPassword := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
 	testUser := models.User{
-		ID:       uuid.New(),
 		Email:    "test@email.com",
 		Password: string(hashedPassword),
 		Username: "testuser",
 	}
-	database.DB.Exec(context.Background(), "INSERT INTO users (id, email, password, username) VALUES ($1, $2, $3, $4)", testUser.ID, testUser.Email, testUser.Password, testUser.Username)
+	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() {
 		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE id=$1", testUser.ID)
+		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
 	})
 
 	method := "POST"
@@ -443,7 +393,7 @@ func TestForgottenPassword(t *testing.T) {
 		},
 		{
 			name:     "Non-existent user",
-			query:    "nonexistant@email.com",
+			query:    "nonexistent@email.com",
 			wantCode: fiber.StatusBadRequest,
 		},
 		{
@@ -482,7 +432,7 @@ func TestForgottenPassword(t *testing.T) {
 
 // TestResetPassword tests the reset password endpoint
 func TestResetPassword(t *testing.T) {
-	app := setup(t)
+	app := test.SetupTest(t)
 
 	// Prepare the database data
 	testPassword := "password"
@@ -493,12 +443,18 @@ func TestResetPassword(t *testing.T) {
 		Password: string(hashedPassword),
 		Username: "testuser",
 	}
-	database.DB.Exec(context.Background(), "INSERT INTO users (id, email, password, username) VALUES ($1, $2, $3, $4)", testUser.ID, testUser.Email, testUser.Password, testUser.Username)
+	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
 	fp := models.ForgottenPassword{
 		UserID: testUser.ID,
 		Token:  uuid.New(),
 	}
-	database.DB.Exec(context.Background(), "INSERT INTO forgotten_passwords (user_id, token) VALUES ($1, $2)", fp.UserID, fp.Token)
+	err = pgxscan.Get(context.Background(), database.DB, &fp, "INSERT INTO forgotten_passwords (user_id, token) VALUES ($1, $2) RETURNING *", fp.UserID, fp.Token)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() {
 		// Clean up
 		database.DB.Exec(context.Background(), "DELETE FROM users WHERE id=$1", testUser.ID)
@@ -520,22 +476,22 @@ func TestResetPassword(t *testing.T) {
 	}{
 		{
 			name:     "Empty ID",
-			req:      ResetPasswordRequest{UserID: "", Token: fp.Token.String(), Password: "password"},
+			req:      ResetPasswordRequest{UserID: "", Token: fp.Token.String(), Password: "newpassword"},
 			wantCode: fiber.StatusBadRequest,
 		},
 		{
 			name:     "Non-UUID ID",
-			req:      ResetPasswordRequest{UserID: "1234", Token: fp.Token.String(), Password: "password"},
+			req:      ResetPasswordRequest{UserID: "1234", Token: fp.Token.String(), Password: "newpassword"},
 			wantCode: fiber.StatusBadRequest,
 		},
 		{
 			name:     "Empty token",
-			req:      ResetPasswordRequest{UserID: fp.Token.String(), Token: "", Password: "password"},
+			req:      ResetPasswordRequest{UserID: fp.Token.String(), Token: "", Password: "newpassword"},
 			wantCode: fiber.StatusBadRequest,
 		},
 		{
 			name:     "Non-UUID token",
-			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: "1234", Password: "password"},
+			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: "1234", Password: "newpassword"},
 			wantCode: fiber.StatusBadRequest,
 		},
 		{
@@ -545,22 +501,22 @@ func TestResetPassword(t *testing.T) {
 		},
 		{
 			name:     "Short password",
-			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: fp.Token.String(), Password: "passwor"},
+			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: fp.Token.String(), Password: "newpass"},
 			wantCode: fiber.StatusBadRequest,
 		},
 		{
 			name:     "Long password",
-			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: fp.Token.String(), Password: "passwordpasswordpasswordpasswordp"},
+			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: fp.Token.String(), Password: "newpasswordnewpasswordnewpassword"},
 			wantCode: fiber.StatusBadRequest,
 		},
 		{
 			name:     "Invalid token for user",
-			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: uuid.New().String(), Password: "password"},
+			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: uuid.New().String(), Password: "newpassword"},
 			wantCode: fiber.StatusUnauthorized,
 		},
 		{
 			name:     "Valid request",
-			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: fp.Token.String(), Password: "new_password"},
+			req:      ResetPasswordRequest{UserID: fp.UserID.String(), Token: fp.Token.String(), Password: "newpassword"},
 			wantCode: fiber.StatusNoContent,
 		},
 	}

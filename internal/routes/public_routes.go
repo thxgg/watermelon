@@ -15,5 +15,5 @@ func PublicRoutes(r fiber.Router) {
 	r.Post("/reset-password", controllers.ResetPassword)
 
 	// Users
-	r.Get("/users/:id/verify", controllers.VerifyUserEmail)
+	r.Put("/users/:id/verify", controllers.VerifyUserEmail)
 }

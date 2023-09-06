@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/thxgg/watermelon/app/queries"
@@ -242,6 +243,7 @@ func GetUsers(c *fiber.Ctx) error {
 // @Success			200 {object} models.User
 // @Failure			400 {object} utils.APIError "Bad request"
 // @Failure     401 {object} utils.APIError "Unauthorized"
+// @Failure		 	404 {object} utils.APIError "Not found"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/users/{id} [get]
 // @Security    SessionID
@@ -266,6 +268,13 @@ func GetUser(c *fiber.Ctx) error {
 
 	user, err := db.GetUser(id)
 	if err != nil {
+		if pgxscan.NotFound(err) {
+			return c.Status(fiber.StatusNotFound).JSON(utils.APIError{
+				Error:   true,
+				Message: "User not found",
+			})
+		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error:   true,
 			Message: err.Error(),
@@ -286,6 +295,7 @@ func GetUser(c *fiber.Ctx) error {
 // @Success			200 {object} models.User
 // @Failure     400 {object} utils.APIError "Invalid request"
 // @Failure     401 {object} utils.APIError "Unauthorized"
+// @Failure		 	404 {object} utils.APIError "Not found"
 // @Failure     500 {object} utils.APIError "Internal server error"
 // @Router			/users/{id} [put]
 // @Security    SessionID
@@ -302,7 +312,7 @@ func UpdateUser(c *fiber.Ctx) error {
 	db := &queries.UserQueries{Pool: database.DB}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error:   true,
 			Message: err.Error(),
 		})
@@ -317,6 +327,13 @@ func UpdateUser(c *fiber.Ctx) error {
 
 	user, err := db.GetUser(id)
 	if err != nil {
+		if pgxscan.NotFound(err) {
+			return c.Status(fiber.StatusNotFound).JSON(utils.APIError{
+				Error:   true,
+				Message: "User not found",
+			})
+		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
 			Error:   true,
 			Message: err.Error(),
@@ -379,7 +396,7 @@ func DeleteUser(c *fiber.Ctx) error {
 	db := &queries.UserQueries{Pool: database.DB}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(utils.APIError{
+		return c.Status(fiber.StatusBadRequest).JSON(utils.APIError{
 			Error:   true,
 			Message: err.Error(),
 		})
@@ -407,7 +424,7 @@ func DeleteUser(c *fiber.Ctx) error {
 // @Success			204
 // @Failure			400 {object} utils.APIError "Bad request"
 // @Failure     500 {object} utils.APIError "Internal server error"
-// @Router			/users/{id}/verify [get]
+// @Router			/users/{id}/verify [put]
 func VerifyUserEmail(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {

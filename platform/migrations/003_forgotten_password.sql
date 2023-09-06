@@ -15,13 +15,13 @@ RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 -- Create a trigger that fires before INSERT or UPDATE
-CREATE TRIGGER delete_expired_forgotten_password_tokens_trigger BEFORE INSERT
+CREATE TRIGGER trigger_delete_expired_forgotten_password_tokens BEFORE INSERT
 OR
 UPDATE
   ON forgotten_passwords EXECUTE FUNCTION delete_expired_forgotten_password_tokens();
 ---- create above / drop below ----
 DROP
-  TRIGGER delete_expired_forgotten_password_tokens_trigger ON forgotten_passwords;
+  TRIGGER trigger_delete_expired_forgotten_password_tokens ON forgotten_passwords;
 DROP
   FUNCTION delete_expired_forgotten_password_tokens();
 DROP

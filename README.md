@@ -68,7 +68,7 @@ Emails are sent using [go-mail](https://github.com/wneessen/go-mail). The SMTP c
 
 ## Testing
 
-To run the tests, setup the `.env.test` file and run `scripts/test.sh`.
+To run the tests, setup the `.env.test` file and run `scripts/test.sh`. To run tests with logging enabled, run `scripts/test.sh -log`. Boilerplate for setting up the server for testing is handled by `internal/test_utils/test_setup.go`.
 
 ## Development
 

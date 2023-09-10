@@ -1,20 +1,6 @@
 basePath: /api
 definitions:
-  controllers.ChangePasswordRequest:
-    properties:
-      new_password:
-        maxLength: 32
-        minLength: 8
-        type: string
-      old_password:
-        maxLength: 32
-        minLength: 8
-        type: string
-    required:
-    - new_password
-    - old_password
-    type: object
-  controllers.LoginRequest:
+  auth.LoginRequest:
     properties:
       email:
         type: string
@@ -26,7 +12,7 @@ definitions:
     - email
     - password
     type: object
-  controllers.RegisterRequest:
+  auth.RegisterRequest:
     properties:
       email:
         type: string
@@ -43,7 +29,7 @@ definitions:
     - password
     - username
     type: object
-  controllers.ResetPasswordRequest:
+  auth.ResetPasswordRequest:
     properties:
       password:
         maxLength: 32
@@ -58,19 +44,26 @@ definitions:
     - token
     - user_id
     type: object
-  controllers.UserUpdateRequest:
+  errors.APIError:
     properties:
-      email:
+      error:
         type: string
-      username:
+    type: object
+  users.ChangePasswordRequest:
+    properties:
+      new_password:
         maxLength: 32
-        minLength: 3
+        minLength: 8
+        type: string
+      old_password:
+        maxLength: 32
+        minLength: 8
         type: string
     required:
-    - email
-    - username
+    - new_password
+    - old_password
     type: object
-  models.User:
+  users.User:
     properties:
       created_at:
         type: string
@@ -87,12 +80,17 @@ definitions:
       username:
         type: string
     type: object
-  utils.APIError:
+  users.UserUpdateRequest:
     properties:
-      error:
-        type: boolean
-      message:
+      email:
         type: string
+      username:
+        maxLength: 32
+        minLength: 3
+        type: string
+    required:
+    - email
+    - username
     type: object
 info:
   contact:
@@ -106,7 +104,6 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a forgotten password token for a user
       parameters:
       - description: User's email address
         in: query
@@ -121,25 +118,25 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
+      summary: Create a forgotten password token for a user
       tags:
       - Auth
   /login:
     post:
       consumes:
       - application/json
-      description: Create a new session for the user
       parameters:
       - description: Login data
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/controllers.LoginRequest'
+          $ref: '#/definitions/auth.LoginRequest'
       produces:
       - application/json
       responses:
@@ -148,22 +145,22 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "401":
           description: Invalid credentials
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
+      summary: Create a new session for the user
       tags:
       - Auth
   /logout:
     delete:
       consumes:
       - application/json
-      description: Invalidate the user's session
       produces:
       - application/json
       responses:
@@ -171,13 +168,13 @@ paths:
           description: No Content
       security:
       - SessionID: []
+      summary: Invalidate the user's session
       tags:
       - Auth
   /me:
     delete:
       consumes:
       - application/json
-      description: Delete the authenticated user
       produces:
       - application/json
       responses:
@@ -186,84 +183,84 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
       security:
       - SessionID: []
+      summary: Delete the authenticated user
       tags:
-      - User
+      - Me
     get:
       consumes:
       - application/json
-      description: Get the authenticated user
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/users.User'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
       security:
       - SessionID: []
+      summary: Get the authenticated user
       tags:
-      - User
+      - Me
     put:
       consumes:
       - application/json
-      description: Update the authenticated user
       parameters:
       - description: User data
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/controllers.UserUpdateRequest'
+          $ref: '#/definitions/users.UserUpdateRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/users.User'
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
       security:
       - SessionID: []
+      summary: Update the authenticated user
       tags:
-      - User
+      - Me
   /me/password:
     put:
       consumes:
       - application/json
-      description: Changes the authenticated user's password
       parameters:
       - description: Password change data
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/controllers.ChangePasswordRequest'
+          $ref: '#/definitions/users.ChangePasswordRequest'
       produces:
       - application/json
       responses:
@@ -272,31 +269,31 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
       security:
       - SessionID: []
+      summary: Changes the authenticated user's password
       tags:
-      - User
+      - Me
   /register:
     post:
       consumes:
       - application/json
-      description: Create a new user
       parameters:
       - description: Registration data
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/controllers.RegisterRequest'
+          $ref: '#/definitions/auth.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -305,25 +302,25 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
+      summary: Create a new user
       tags:
       - Auth
   /reset-password:
     post:
       consumes:
       - application/json
-      description: Create a forgotten password token for a user
       parameters:
       - description: Reset password data
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/controllers.ResetPasswordRequest'
+          $ref: '#/definitions/auth.ResetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -332,22 +329,22 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "401":
           description: Invalid token
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
+      summary: Create a forgotten password token for a user
       tags:
       - Auth
   /users:
     get:
       consumes:
       - application/json
-      description: Get all existing users
       produces:
       - application/json
       responses:
@@ -355,25 +352,25 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.User'
+              $ref: '#/definitions/users.User'
             type: array
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
       security:
       - SessionID: []
+      summary: Get all existing users
       tags:
       - User
   /users/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete user by given ID
       parameters:
       - description: User ID
         in: path
@@ -388,23 +385,23 @@ paths:
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
       security:
       - SessionID: []
+      summary: Delete user
       tags:
       - User
     get:
       consumes:
       - application/json
-      description: Get user by given ID
       parameters:
       - description: User ID
         in: path
@@ -417,31 +414,31 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/users.User'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "404":
           description: Not found
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
       security:
       - SessionID: []
+      summary: Get user
       tags:
       - User
     put:
       consumes:
       - application/json
-      description: Update user by given ID
       parameters:
       - description: User ID
         in: path
@@ -453,42 +450,42 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/controllers.UserUpdateRequest'
+          $ref: '#/definitions/users.UserUpdateRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/users.User'
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "404":
           description: Not found
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
       security:
       - SessionID: []
+      summary: Update user
       tags:
       - User
   /users/{id}/verify:
     put:
       consumes:
       - application/json
-      description: Verify a user's email given a token
       parameters:
       - description: User ID
-        in: path
+        in: query
         name: id
         required: true
         type: string
@@ -505,11 +502,12 @@ paths:
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/utils.APIError'
+            $ref: '#/definitions/errors.APIError'
+      summary: Verify a user
       tags:
       - User
 securityDefinitions:

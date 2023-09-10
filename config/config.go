@@ -6,78 +6,72 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/thxgg/watermelon/internal/database"
+	"github.com/thxgg/watermelon/internal/email"
+	"github.com/thxgg/watermelon/internal/sessions"
 	"github.com/thxgg/watermelon/internal/validator"
 )
 
-type SessionConfig struct {
-	Database string `validate:"url"`
-	Duration time.Duration
-}
-
-type EmailConfig struct {
-	Host     string `validate:"hostname"`
-	Port     int
-	Username string
-	Password string
-	From     string `validate:"email"`
-	SSL      bool
-}
-
-type config struct {
-	Database string `validate:"url"`
-	Sessions SessionConfig
-	Email    EmailConfig
+type Global struct {
+	Database database.Config
+	Session  sessions.Config
+	Email    email.Config
+	Port     string `validate:"hostname_port"`
 	BaseURL  string `validate:"url"`
 }
 
-var Config config
-
-func Setup() {
-	log.Debug("Loading configuration")
-	// Database
-	Config.Database = loadEnvVar("DATABASE_URL")
-
-	// Sessions
-	sessionsDuration, err := strconv.Atoi(loadEnvVar("SESSION_DURATION_HOURS"))
-	if err != nil {
-		log.Panicf("Failed to parse sessions duration: %s", err)
-	}
-	Config.Sessions = SessionConfig{
-		Database: loadEnvVar("SESSION_DATABASE_URL"),
-		Duration: time.Duration(sessionsDuration),
-	}
-
-	// Email
-	smtpPort, err := strconv.Atoi(loadEnvVar("SMTP_PORT"))
-	if err != nil {
-		log.Panicf("Failed to parse SMTP port: %s", err)
-	}
-	smtpSSL, err := strconv.ParseBool(loadEnvVar("SMTP_SSL"))
-	if err != nil {
-		log.Panicf("Failed to parse SMTP SSL: %s", err)
-	}
-	Config.Email = EmailConfig{
-		Host:     loadEnvVar("SMTP_HOST"),
-		Port:     smtpPort,
-		Username: loadEnvVar("SMTP_USERNAME"),
-		Password: loadEnvVar("SMTP_PASSWORD"),
-		From:     loadEnvVar("SMTP_FROM"),
-		SSL:      smtpSSL,
+func New() *Global {
+	config := &Global{
+		Database: database.Config{
+			URL:              loadEnvVar("DATABASE_URL"),
+			PreferConnection: loadEnvVarBool("DATABASE_PREFER_CONNECTION"),
+		},
+		Session: sessions.Config{
+			DatabaseURL: loadEnvVar("SESSION_DATABASE_URL"),
+			Duration:    time.Duration(loadEnvVarInt("SESSION_DURATION_MINUTES")),
+		},
+		Email: email.Config{
+			Host:     loadEnvVar("SMTP_HOST"),
+			Port:     loadEnvVarInt("SMTP_PORT"),
+			Username: loadEnvVar("SMTP_USERNAME"),
+			Password: loadEnvVar("SMTP_PASSWORD"),
+			From:     loadEnvVar("SMTP_FROM"),
+			SSL:      loadEnvVarBool("SMTP_SSL"),
+		},
+		Port:    loadEnvVar("PORT"),
+		BaseURL: loadEnvVar("BASE_URL"),
 	}
 
-	// App
-	Config.BaseURL = loadEnvVar("BASE_URL")
-
-	err = validator.Validator.Struct(Config)
+	err := validator.New().Struct(config)
 	if err != nil {
 		log.Panicf("Failed to validate configuration: %s", err)
 	}
+
+	return config
 }
 
 func loadEnvVar(key string) string {
 	value, present := os.LookupEnv(key)
 	if !present {
 		log.Panicf("Environment variable %s not set", key)
+	}
+
+	return value
+}
+
+func loadEnvVarInt(key string) int {
+	value, err := strconv.Atoi(loadEnvVar(key))
+	if err != nil {
+		log.Panicf("Failed to parse environment variable %s as int: %s", key, err)
+	}
+
+	return value
+}
+
+func loadEnvVarBool(key string) bool {
+	value, err := strconv.ParseBool(loadEnvVar(key))
+	if err != nil {
+		log.Panicf("Failed to parse environment variable %s as bool: %s", key, err)
 	}
 
 	return value

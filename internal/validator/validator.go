@@ -7,14 +7,14 @@ import (
 	"github.com/google/uuid"
 )
 
-var Validator = validator.New(validator.WithRequiredStructEnabled())
-
-func Setup() {
-	Validator.RegisterCustomTypeFunc(ValidateUUID, uuid.UUID{})
+func New() *validator.Validate {
+	v := validator.New(validator.WithRequiredStructEnabled())
+	v.RegisterCustomTypeFunc(validateUUID, uuid.UUID{})
+	return v
 }
 
-// ValidateUUID implements validator.CustomTypeFunc
-func ValidateUUID(field reflect.Value) interface{} {
+// validateUUID implements validator.CustomTypeFunc
+func validateUUID(field reflect.Value) interface{} {
 	if valuer, ok := field.Interface().(uuid.UUID); ok {
 		return valuer.String()
 	}

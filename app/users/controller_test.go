@@ -1,4 +1,4 @@
-package controllers_test
+package users_test
 
 import (
 	"bytes"
@@ -14,32 +14,31 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/thxgg/watermelon/app/controllers"
-	"github.com/thxgg/watermelon/app/models"
-	test "github.com/thxgg/watermelon/internal/test_utils"
-	"github.com/thxgg/watermelon/platform/database"
+	"github.com/thxgg/watermelon/app/auth"
+	"github.com/thxgg/watermelon/app/users"
+	"github.com/thxgg/watermelon/internal/sessions"
+	test "github.com/thxgg/watermelon/internal/testutils"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // TestGetSelf tests the authenticated user profile endpoint
 func TestGetSelf(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	testPassword := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
-	testUser := models.User{
-		Email:    "test@email.com",
+	testUser := users.User{
+		Email:    "test_get_self@email.com",
 		Password: string(hashedPassword),
-		Username: "testuser",
+		Username: "test_get_self",
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
 	})
 
 	// Test table for the authenticated user profile endpoint
@@ -68,10 +67,10 @@ func TestGetSelf(t *testing.T) {
 				method := "POST"
 				url := "/api/login"
 
-				body, _ := json.Marshal(controllers.LoginRequest{Email: testUser.Email, Password: testPassword})
+				body, _ := json.Marshal(auth.LoginRequest{Email: testUser.Email, Password: testPassword})
 				req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				res, err := app.Test(req, -1)
+				res, err := server.Test(req, -1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -80,15 +79,14 @@ func TestGetSelf(t *testing.T) {
 				cookies = res.Cookies()
 
 				for _, cookie := range cookies {
-					if cookie.Name == "sessionID" {
+					if cookie.Name == sessions.CookieName {
 						session = cookie.Value
 						break
 					}
 				}
 
 				t.Cleanup(func() {
-					// Clean up
-					database.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.HDel(context.Background(), session)
 				})
 			}
 
@@ -102,7 +100,7 @@ func TestGetSelf(t *testing.T) {
 				}
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -115,7 +113,7 @@ func TestGetSelf(t *testing.T) {
 
 			// If the request was successful, check the returned user
 			if res.StatusCode == fiber.StatusOK {
-				var user models.User
+				var user users.User
 				// Bind user to the response body
 				if err := json.NewDecoder(res.Body).Decode(&user); err != nil {
 					t.Fatal(err)
@@ -124,7 +122,7 @@ func TestGetSelf(t *testing.T) {
 				// Compare the response body with the testUser
 				testUser.Password = ""
 				if user != testUser {
-					t.Errorf("Expected user to match testUser's email and username.\nExpected: %+v\nGot: %+v", testUser, user)
+					t.Errorf("Expected user %+v to match testUser %+v on email and username.", user, testUser)
 				}
 
 				// Check that the password is not returned
@@ -138,102 +136,101 @@ func TestGetSelf(t *testing.T) {
 
 // TestUpdateSelf tests the authenticated user profile update endpoint
 func TestUpdateSelf(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	testPassword := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
-	testUser := models.User{
-		Email:      "test@email.com",
+	testUser := users.User{
+		Email:      "test_update_self@email.com",
 		Password:   string(hashedPassword),
-		Username:   "testuser",
+		Username:   "test_update_self",
 		IsVerified: false,
 	}
-	testUser2 := models.User{
-		Email:      "test2@email.com",
+	testUser2 := users.User{
+		Email:      "test_update_self2@email.com",
 		Password:   string(hashedPassword),
-		Username:   "testuser2",
+		Username:   "test_update_self2",
 		IsVerified: true,
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username, is_verified) VALUES ($1, $2, $3, $4) RETURNING *", testUser.Email, testUser.Password, testUser.Username, testUser.IsVerified)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &testUser, "INSERT INTO users (email, password, username, is_verified) VALUES ($1, $2, $3, $4) RETURNING *", testUser.Email, testUser.Password, testUser.Username, testUser.IsVerified)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = pgxscan.Get(context.Background(), database.DB, &testUser2, "INSERT INTO users (email, password, username, is_verified) VALUES ($1, $2, $3, $4) RETURNING *", testUser2.Email, testUser2.Password, testUser2.Username, testUser.IsVerified)
+	err = pgxscan.Get(context.Background(), server.Config.DB, &testUser2, "INSERT INTO users (email, password, username, is_verified) VALUES ($1, $2, $3, $4) RETURNING *", testUser2.Email, testUser2.Password, testUser2.Username, testUser.IsVerified)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser2.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser2.Email)
 	})
 
 	// Test table for the authenticated user profile update endpoint
 	tests := []struct {
 		name            string
 		isAuthenticated bool
-		req             controllers.UserUpdateRequest
+		req             users.UserUpdateRequest
 		wantCode        int
 	}{
 		{
 			name:            "Unauthenticated",
 			isAuthenticated: false,
-			req:             controllers.UserUpdateRequest{Email: testUser.Email, Username: testUser.Username},
+			req:             users.UserUpdateRequest{Email: testUser.Email, Username: testUser.Username},
 			wantCode:        fiber.StatusUnauthorized,
 		},
 		{
 			name:            "Empty email",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: "", Username: testUser.Username},
+			req:             users.UserUpdateRequest{Email: "", Username: testUser.Username},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Malformed email",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: "test@email", Username: testUser.Username},
+			req:             users.UserUpdateRequest{Email: "test_update_self@email", Username: testUser.Username},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Empty username",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: testUser.Email, Username: ""},
+			req:             users.UserUpdateRequest{Email: testUser.Email, Username: ""},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Short username",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: testUser.Email, Username: "us"},
+			req:             users.UserUpdateRequest{Email: testUser.Email, Username: "us"},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Long username",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: testUser.Email, Username: "usernameusernameusernameusernameu"},
+			req:             users.UserUpdateRequest{Email: testUser.Email, Username: "usernameusernameusernameusernameu"},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Email already exists",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: testUser2.Email, Username: testUser.Username},
+			req:             users.UserUpdateRequest{Email: testUser2.Email, Username: testUser.Username},
 			wantCode:        fiber.StatusInternalServerError,
 		},
 		{
 			name:            "Username already exists",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: testUser.Email, Username: testUser2.Username},
+			req:             users.UserUpdateRequest{Email: testUser.Email, Username: testUser2.Username},
 			wantCode:        fiber.StatusInternalServerError,
 		},
 		{
 			name:            "Update only username",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: testUser.Email, Username: "testuser3"},
+			req:             users.UserUpdateRequest{Email: testUser.Email, Username: "test_update_self3"},
 			wantCode:        fiber.StatusOK,
 		},
 		{
 			name:            "Update both email and username",
 			isAuthenticated: true,
-			req:             controllers.UserUpdateRequest{Email: "test3@email.com", Username: "testuser3"},
+			req:             users.UserUpdateRequest{Email: "test_update_self3@email.com", Username: "test_update_self3"},
 			wantCode:        fiber.StatusOK,
 		},
 	}
@@ -246,10 +243,10 @@ func TestUpdateSelf(t *testing.T) {
 				method := "POST"
 				url := "/api/login"
 
-				body, _ := json.Marshal(controllers.LoginRequest{Email: testUser.Email, Password: testPassword})
+				body, _ := json.Marshal(auth.LoginRequest{Email: testUser.Email, Password: testPassword})
 				req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				res, err := app.Test(req, -1)
+				res, err := server.Test(req, -1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -258,15 +255,14 @@ func TestUpdateSelf(t *testing.T) {
 				cookies = res.Cookies()
 
 				for _, cookie := range cookies {
-					if cookie.Name == "sessionID" {
+					if cookie.Name == sessions.CookieName {
 						session = cookie.Value
 						break
 					}
 				}
 
 				t.Cleanup(func() {
-					// Clean up
-					database.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.HDel(context.Background(), session)
 				})
 			}
 
@@ -283,7 +279,7 @@ func TestUpdateSelf(t *testing.T) {
 				}
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -302,7 +298,7 @@ func TestUpdateSelf(t *testing.T) {
 				}
 
 				// Check the returned resUser
-				var resUser models.User
+				var resUser users.User
 				// Bind user to the response body
 				if err := json.NewDecoder(res.Body).Decode(&resUser); err != nil {
 					t.Fatal(err)
@@ -323,8 +319,8 @@ func TestUpdateSelf(t *testing.T) {
 				}
 
 				// Check that the database data is updated
-				var dbUser models.User
-				err := pgxscan.Get(context.Background(), database.DB, &dbUser, "SELECT * FROM users WHERE email=$1", tt.req.Email)
+				var dbUser users.User
+				err := pgxscan.Get(context.Background(), server.Config.DB, &dbUser, "SELECT * FROM users WHERE email=$1", tt.req.Email)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -348,84 +344,83 @@ func TestUpdateSelf(t *testing.T) {
 
 // TestChangePassword tests the authenticated user password change endpoint
 func TestChangePassword(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	testPassword := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
-	testUser := models.User{
-		Email:    "test@email.com",
+	testUser := users.User{
+		Email:    "test_change_password@email.com",
 		Password: string(hashedPassword),
-		Username: "testuser",
+		Username: "test_change_password",
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
 	})
 
 	// Test table for the authenticated user profile update endpoint
 	tests := []struct {
 		name            string
 		isAuthenticated bool
-		req             controllers.ChangePasswordRequest
+		req             users.ChangePasswordRequest
 		wantCode        int
 	}{
 		{
 			name:            "Unauthenticated",
 			isAuthenticated: false,
-			req:             controllers.ChangePasswordRequest{OldPassword: testPassword, NewPassword: "newpassword"},
+			req:             users.ChangePasswordRequest{OldPassword: testPassword, NewPassword: "newpassword"},
 			wantCode:        fiber.StatusUnauthorized,
 		},
 		{
 			name:            "Empty old password",
 			isAuthenticated: true,
-			req:             controllers.ChangePasswordRequest{OldPassword: "", NewPassword: "newpassword"},
+			req:             users.ChangePasswordRequest{OldPassword: "", NewPassword: "newpassword"},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Short old password",
 			isAuthenticated: true,
-			req:             controllers.ChangePasswordRequest{OldPassword: "passwor", NewPassword: "newpassword"},
+			req:             users.ChangePasswordRequest{OldPassword: "passwor", NewPassword: "newpassword"},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Long old password",
 			isAuthenticated: true,
-			req:             controllers.ChangePasswordRequest{OldPassword: "passwordpasswordpasswordpasswordp", NewPassword: "newpassword"},
+			req:             users.ChangePasswordRequest{OldPassword: "passwordpasswordpasswordpasswordp", NewPassword: "newpassword"},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Empty new password",
 			isAuthenticated: true,
-			req:             controllers.ChangePasswordRequest{OldPassword: testPassword, NewPassword: ""},
+			req:             users.ChangePasswordRequest{OldPassword: testPassword, NewPassword: ""},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Short new password",
 			isAuthenticated: true,
-			req:             controllers.ChangePasswordRequest{OldPassword: testPassword, NewPassword: "newpass"},
+			req:             users.ChangePasswordRequest{OldPassword: testPassword, NewPassword: "newpass"},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Long new password",
 			isAuthenticated: true,
-			req:             controllers.ChangePasswordRequest{OldPassword: testPassword, NewPassword: "newpasswordnewpasswordnewpassword"},
+			req:             users.ChangePasswordRequest{OldPassword: testPassword, NewPassword: "newpasswordnewpasswordnewpassword"},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "New password same as old password",
 			isAuthenticated: true,
-			req:             controllers.ChangePasswordRequest{OldPassword: testPassword, NewPassword: testPassword},
+			req:             users.ChangePasswordRequest{OldPassword: testPassword, NewPassword: testPassword},
 			wantCode:        fiber.StatusBadRequest,
 		},
 		{
 			name:            "Valid request",
 			isAuthenticated: true,
-			req:             controllers.ChangePasswordRequest{OldPassword: testPassword, NewPassword: "newpassword"},
+			req:             users.ChangePasswordRequest{OldPassword: testPassword, NewPassword: "newpassword"},
 			wantCode:        fiber.StatusNoContent,
 		},
 	}
@@ -438,10 +433,10 @@ func TestChangePassword(t *testing.T) {
 				method := "POST"
 				url := "/api/login"
 
-				body, _ := json.Marshal(controllers.LoginRequest{Email: testUser.Email, Password: testPassword})
+				body, _ := json.Marshal(auth.LoginRequest{Email: testUser.Email, Password: testPassword})
 				req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				res, err := app.Test(req, -1)
+				res, err := server.Test(req, -1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -450,15 +445,14 @@ func TestChangePassword(t *testing.T) {
 				cookies = res.Cookies()
 
 				for _, cookie := range cookies {
-					if cookie.Name == "sessionID" {
+					if cookie.Name == sessions.CookieName {
 						session = cookie.Value
 						break
 					}
 				}
 
 				t.Cleanup(func() {
-					// Clean up
-					database.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.HDel(context.Background(), session)
 				})
 			}
 
@@ -475,7 +469,7 @@ func TestChangePassword(t *testing.T) {
 				}
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -488,8 +482,8 @@ func TestChangePassword(t *testing.T) {
 
 			// If the request was successful, check the database data
 			if res.StatusCode == fiber.StatusNoContent {
-				var user models.User
-				err := pgxscan.Get(context.Background(), database.DB, &user, "SELECT * FROM users WHERE email=$1", testUser.Email)
+				var user users.User
+				err := pgxscan.Get(context.Background(), server.Config.DB, &user, "SELECT * FROM users WHERE email=$1", testUser.Email)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -511,23 +505,22 @@ func TestChangePassword(t *testing.T) {
 
 // TestDeleteSelf tests the authenticated user profile deletion endpoint
 func TestDeleteSelf(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	testPassword := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
-	testUser := models.User{
-		Email:    "test@email.com",
+	testUser := users.User{
+		Email:    "test_delete_self@email.com",
 		Password: string(hashedPassword),
-		Username: "testuser",
+		Username: "test_delete_self",
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &testUser, "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *", testUser.Email, testUser.Password, testUser.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
 	})
 
 	// Test table for the authenticated user profile deletion endpoint
@@ -556,10 +549,10 @@ func TestDeleteSelf(t *testing.T) {
 				method := "POST"
 				url := "/api/login"
 
-				body, _ := json.Marshal(controllers.LoginRequest{Email: testUser.Email, Password: testPassword})
+				body, _ := json.Marshal(auth.LoginRequest{Email: testUser.Email, Password: testPassword})
 				req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				res, err := app.Test(req, -1)
+				res, err := server.Test(req, -1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -568,15 +561,14 @@ func TestDeleteSelf(t *testing.T) {
 				cookies = res.Cookies()
 
 				for _, cookie := range cookies {
-					if cookie.Name == "sessionID" {
+					if cookie.Name == sessions.CookieName {
 						session = cookie.Value
 						break
 					}
 				}
 
 				t.Cleanup(func() {
-					// Clean up
-					database.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.HDel(context.Background(), session)
 				})
 			}
 
@@ -591,7 +583,7 @@ func TestDeleteSelf(t *testing.T) {
 				}
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -608,7 +600,7 @@ func TestDeleteSelf(t *testing.T) {
 					Exists bool
 				}
 
-				err := pgxscan.Get(context.Background(), database.DB, &exists, "SELECT EXISTS (SELECT TRUE FROM users WHERE id=$1)", testUser.ID)
+				err := pgxscan.Get(context.Background(), server.Config.DB, &exists, "SELECT EXISTS (SELECT TRUE FROM users WHERE id=$1)", testUser.ID)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -623,35 +615,34 @@ func TestDeleteSelf(t *testing.T) {
 
 // TestGetUsers tests the users list endpoint
 func TestGetUsers(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	password := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	adminUser := models.User{
-		Email:    "admin@email.com",
+	adminUser := users.User{
+		Email:    "test_get_users_admin@email.com",
 		Password: string(hashedPassword),
-		Username: "adminuser",
+		Username: "test_get_users_admin",
 		IsAdmin:  true,
 	}
-	normalUser := models.User{
-		Email:    "user@email.com",
+	normalUser := users.User{
+		Email:    "test_get_users_normal@email.com",
 		Password: string(hashedPassword),
-		Username: "normaluser",
+		Username: "test_get_users_normal",
 		IsAdmin:  false,
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &adminUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser.Email, adminUser.Password, adminUser.Username, adminUser.IsAdmin)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &adminUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser.Email, adminUser.Password, adminUser.Username, adminUser.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = pgxscan.Get(context.Background(), database.DB, &normalUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", normalUser.Email, normalUser.Password, normalUser.Username, normalUser.IsAdmin)
+	err = pgxscan.Get(context.Background(), server.Config.DB, &normalUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", normalUser.Email, normalUser.Password, normalUser.Username, normalUser.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser.Email)
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", normalUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", normalUser.Email)
 	})
 
 	// Test table for the users list endpoint
@@ -659,7 +650,7 @@ func TestGetUsers(t *testing.T) {
 		name            string
 		isAuthenticated bool
 		isAdmin         bool
-		wantResult      []models.User
+		wantResult      []users.User
 		wantCode        int
 	}{
 		{
@@ -680,7 +671,7 @@ func TestGetUsers(t *testing.T) {
 			name:            "Valid request",
 			isAuthenticated: true,
 			isAdmin:         true,
-			wantResult:      []models.User{adminUser, normalUser},
+			wantResult:      []users.User{adminUser, normalUser},
 			wantCode:        fiber.StatusOK,
 		},
 	}
@@ -693,16 +684,16 @@ func TestGetUsers(t *testing.T) {
 				method := "POST"
 				url := "/api/login"
 
-				var user models.User
+				var user users.User
 				if tt.isAdmin {
 					user = adminUser
 				} else {
 					user = normalUser
 				}
-				body, _ := json.Marshal(controllers.LoginRequest{Email: user.Email, Password: password})
+				body, _ := json.Marshal(auth.LoginRequest{Email: user.Email, Password: password})
 				req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				res, err := app.Test(req, -1)
+				res, err := server.Test(req, -1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -711,15 +702,14 @@ func TestGetUsers(t *testing.T) {
 				cookies = res.Cookies()
 
 				for _, cookie := range cookies {
-					if cookie.Name == "sessionID" {
+					if cookie.Name == sessions.CookieName {
 						session = cookie.Value
 						break
 					}
 				}
 
 				t.Cleanup(func() {
-					// Clean up
-					database.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.HDel(context.Background(), session)
 				})
 			}
 
@@ -734,7 +724,7 @@ func TestGetUsers(t *testing.T) {
 				}
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -746,8 +736,8 @@ func TestGetUsers(t *testing.T) {
 			}
 
 			if tt.wantResult != nil {
-				// Read the response body into a slice of models.User
-				resUsers := make([]models.User, 0)
+				// Read the response body into a slice of users.User
+				resUsers := make([]users.User, 0)
 				if err := json.NewDecoder(res.Body).Decode(&resUsers); err != nil {
 					t.Fatal(err)
 				}
@@ -760,7 +750,7 @@ func TestGetUsers(t *testing.T) {
 				}
 
 				// Compare the response body with the testUsers via sort
-				sortUsersByID := func(slice []models.User) func(i, j int) bool {
+				sortUsersByID := func(slice []users.User) func(i, j int) bool {
 					return func(i, j int) bool {
 						return slice[i].ID.String() < slice[j].ID.String()
 					}
@@ -768,7 +758,7 @@ func TestGetUsers(t *testing.T) {
 				sort.Slice(resUsers, sortUsersByID(resUsers))
 				sort.Slice(tt.wantResult, sortUsersByID(tt.wantResult))
 				if reflect.DeepEqual(resUsers, tt.wantResult) {
-					t.Errorf("Expected: %+v\nGot: %+v", tt.wantResult, resUsers)
+					t.Errorf("Expected %+v but got %+v", tt.wantResult, resUsers)
 				}
 			}
 		})
@@ -777,35 +767,34 @@ func TestGetUsers(t *testing.T) {
 
 // TestGetUser tests the user profile endpoint
 func TestGetUser(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	password := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	adminUser := models.User{
-		Email:    "admin@email.com",
+	adminUser := users.User{
+		Email:    "test_get_user_admin@email.com",
 		Password: string(hashedPassword),
-		Username: "adminuser",
+		Username: "test_get_user_admin",
 		IsAdmin:  true,
 	}
-	normalUser := models.User{
-		Email:    "user@email.com",
+	normalUser := users.User{
+		Email:    "test_get_user_normal@email.com",
 		Password: string(hashedPassword),
-		Username: "normaluser",
+		Username: "test_get_user_normal",
 		IsAdmin:  false,
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &adminUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser.Email, adminUser.Password, adminUser.Username, adminUser.IsAdmin)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &adminUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser.Email, adminUser.Password, adminUser.Username, adminUser.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = pgxscan.Get(context.Background(), database.DB, &normalUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", normalUser.Email, normalUser.Password, normalUser.Username, normalUser.IsAdmin)
+	err = pgxscan.Get(context.Background(), server.Config.DB, &normalUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", normalUser.Email, normalUser.Password, normalUser.Username, normalUser.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser.Email)
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", normalUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", normalUser.Email)
 	})
 
 	// Test table for the user profile endpoint
@@ -814,7 +803,7 @@ func TestGetUser(t *testing.T) {
 		isAuthenticated bool
 		isAdmin         bool
 		id              string
-		wantResult      *models.User
+		wantResult      *users.User
 		wantCode        int
 	}{
 		{
@@ -875,16 +864,16 @@ func TestGetUser(t *testing.T) {
 				method := "POST"
 				url := "/api/login"
 
-				var user models.User
+				var user users.User
 				if tt.isAdmin {
 					user = adminUser
 				} else {
 					user = normalUser
 				}
-				body, _ := json.Marshal(controllers.LoginRequest{Email: user.Email, Password: password})
+				body, _ := json.Marshal(auth.LoginRequest{Email: user.Email, Password: password})
 				req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				res, err := app.Test(req, -1)
+				res, err := server.Test(req, -1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -893,15 +882,14 @@ func TestGetUser(t *testing.T) {
 				cookies = res.Cookies()
 
 				for _, cookie := range cookies {
-					if cookie.Name == "sessionID" {
+					if cookie.Name == sessions.CookieName {
 						session = cookie.Value
 						break
 					}
 				}
 
 				t.Cleanup(func() {
-					// Clean up
-					database.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.HDel(context.Background(), session)
 				})
 			}
 
@@ -916,7 +904,7 @@ func TestGetUser(t *testing.T) {
 				}
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -928,7 +916,7 @@ func TestGetUser(t *testing.T) {
 			}
 
 			if tt.wantResult != nil {
-				var resUser models.User
+				var resUser users.User
 				if err := json.NewDecoder(res.Body).Decode(&resUser); err != nil {
 					t.Fatal(err)
 				}
@@ -939,7 +927,7 @@ func TestGetUser(t *testing.T) {
 
 				tt.wantResult.Password = ""
 				if resUser != *tt.wantResult {
-					t.Errorf("Expected: %+v\nGot: %+v", tt.wantResult, resUser)
+					t.Errorf("Expected %+v but got %+v", tt.wantResult, resUser)
 				}
 			}
 		})
@@ -948,36 +936,35 @@ func TestGetUser(t *testing.T) {
 
 // TestUpdateUser tests the user profile update endpoint
 func TestUpdateUser(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	password := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	adminUser := models.User{
-		Email:    "admin@email.com",
+	adminUser := users.User{
+		Email:    "test_update_user_admin@email.com",
 		Password: string(hashedPassword),
-		Username: "adminuser",
+		Username: "test_update_user_admin",
 		IsAdmin:  true,
 	}
-	normalUser := models.User{
-		Email:      "user@email.com",
+	normalUser := users.User{
+		Email:      "test_update_user_normal@email.com",
 		Password:   string(hashedPassword),
-		Username:   "normaluser",
+		Username:   "test_update_user_normal",
 		IsAdmin:    false,
 		IsVerified: true,
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &adminUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser.Email, adminUser.Password, adminUser.Username, adminUser.IsAdmin)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &adminUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser.Email, adminUser.Password, adminUser.Username, adminUser.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = pgxscan.Get(context.Background(), database.DB, &normalUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", normalUser.Email, normalUser.Password, normalUser.Username, normalUser.IsAdmin)
+	err = pgxscan.Get(context.Background(), server.Config.DB, &normalUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", normalUser.Email, normalUser.Password, normalUser.Username, normalUser.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser.Email)
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", normalUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", normalUser.Email)
 	})
 
 	// Test table for the user profile update endpoint
@@ -986,8 +973,8 @@ func TestUpdateUser(t *testing.T) {
 		isAuthenticated bool
 		isAdmin         bool
 		id              string
-		req             controllers.UserUpdateRequest
-		wantResult      *models.User
+		req             users.UserUpdateRequest
+		wantResult      *users.User
 		wantCode        int
 	}{
 		{
@@ -995,7 +982,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: false,
 			isAdmin:         false,
 			id:              adminUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "updated@email.com", Username: "updated_username"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email.com", Username: "test_update_user_admin1"},
 			wantResult:      nil,
 			wantCode:        fiber.StatusUnauthorized,
 		},
@@ -1004,7 +991,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         false,
 			id:              adminUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "updated@email.com", Username: "updated_username"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email.com", Username: "test_update_user_admin1"},
 			wantResult:      nil,
 			wantCode:        fiber.StatusUnauthorized,
 		},
@@ -1013,7 +1000,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              "1234",
-			req:             controllers.UserUpdateRequest{Email: "updated@email.com", Username: "updated_username"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email.com", Username: "test_update_user_admin1"},
 			wantResult:      nil,
 			wantCode:        fiber.StatusBadRequest,
 		},
@@ -1022,7 +1009,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              uuid.New().String(),
-			req:             controllers.UserUpdateRequest{Email: "updated@email.com", Username: "updated_username"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email.com", Username: "test_update_user_admin1"},
 			wantResult:      nil,
 			wantCode:        fiber.StatusNotFound,
 		},
@@ -1031,7 +1018,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              normalUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "", Username: "updated_username"},
+			req:             users.UserUpdateRequest{Email: "", Username: "test_update_user_admin1"},
 			wantResult:      nil,
 			wantCode:        fiber.StatusBadRequest,
 		},
@@ -1040,7 +1027,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              normalUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "updated@email", Username: "updated_username"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email", Username: "test_update_user_admin1"},
 			wantResult:      nil,
 			wantCode:        fiber.StatusBadRequest,
 		},
@@ -1049,7 +1036,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              normalUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "updated@email.com", Username: ""},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email.com", Username: ""},
 			wantResult:      nil,
 			wantCode:        fiber.StatusBadRequest,
 		},
@@ -1058,7 +1045,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              normalUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "updated@email.com", Username: "up"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email.com", Username: "up"},
 			wantResult:      nil,
 			wantCode:        fiber.StatusBadRequest,
 		},
@@ -1067,7 +1054,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              normalUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "updated@email.com", Username: "updated_usernameupdated_usernameu"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email.com", Username: "updated_usernameupdated_usernameu"},
 			wantResult:      nil,
 			wantCode:        fiber.StatusBadRequest,
 		},
@@ -1076,7 +1063,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              normalUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: normalUser.Email, Username: "updated_normal"},
+			req:             users.UserUpdateRequest{Email: normalUser.Email, Username: "test_update_user_normal1"},
 			wantResult:      &normalUser,
 			wantCode:        fiber.StatusOK,
 		},
@@ -1085,7 +1072,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              normalUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "updated_normal@email.com", Username: "updated_normal_again"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_normal2@email.com", Username: "test_update_user_normal2"},
 			wantResult:      &normalUser,
 			wantCode:        fiber.StatusOK,
 		},
@@ -1094,7 +1081,7 @@ func TestUpdateUser(t *testing.T) {
 			isAuthenticated: true,
 			isAdmin:         true,
 			id:              adminUser.ID.String(),
-			req:             controllers.UserUpdateRequest{Email: "updated_admin@email.com", Username: "updated_admin"},
+			req:             users.UserUpdateRequest{Email: "test_update_user_admin1@email.com", Username: "test_update_user_admin1"},
 			wantResult:      &adminUser,
 			wantCode:        fiber.StatusOK,
 		},
@@ -1108,16 +1095,16 @@ func TestUpdateUser(t *testing.T) {
 				method := "POST"
 				url := "/api/login"
 
-				var user models.User
+				var user users.User
 				if tt.isAdmin {
 					user = adminUser
 				} else {
 					user = normalUser
 				}
-				body, _ := json.Marshal(controllers.LoginRequest{Email: user.Email, Password: password})
+				body, _ := json.Marshal(auth.LoginRequest{Email: user.Email, Password: password})
 				req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				res, err := app.Test(req, -1)
+				res, err := server.Test(req, -1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1126,15 +1113,14 @@ func TestUpdateUser(t *testing.T) {
 				cookies = res.Cookies()
 
 				for _, cookie := range cookies {
-					if cookie.Name == "sessionID" {
+					if cookie.Name == sessions.CookieName {
 						session = cookie.Value
 						break
 					}
 				}
 
 				t.Cleanup(func() {
-					// Clean up
-					database.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.HDel(context.Background(), session)
 				})
 			}
 
@@ -1151,7 +1137,7 @@ func TestUpdateUser(t *testing.T) {
 				}
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1166,7 +1152,7 @@ func TestUpdateUser(t *testing.T) {
 				wasEmailChanged := tt.req.Email != tt.wantResult.Email
 
 				// Check if the response body matches the expected result
-				var resUser models.User
+				var resUser users.User
 				if err := json.NewDecoder(res.Body).Decode(&resUser); err != nil {
 					t.Fatal(err)
 				}
@@ -1180,12 +1166,12 @@ func TestUpdateUser(t *testing.T) {
 				tt.wantResult.Password = ""
 				tt.wantResult.UpdatedAt = resUser.UpdatedAt
 				if resUser != *tt.wantResult {
-					t.Errorf("Expected: %+v\nGot: %+v", tt.wantResult, resUser)
+					t.Errorf("Expected %+v but got %+v", tt.wantResult, resUser)
 				}
 
 				// Check if the database data matches the expected result
-				var dbUser models.User
-				err := pgxscan.Get(context.Background(), database.DB, &dbUser, "SELECT * FROM users WHERE id=$1", tt.wantResult.ID)
+				var dbUser users.User
+				err := pgxscan.Get(context.Background(), server.Config.DB, &dbUser, "SELECT * FROM users WHERE id=$1", tt.wantResult.ID)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1209,46 +1195,45 @@ func TestUpdateUser(t *testing.T) {
 
 // TestDeleteUser tests the user profile deletion endpoint
 func TestDeleteUser(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	password := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	adminUser := models.User{
-		Email:    "admin@email.com",
+	adminUser := users.User{
+		Email:    "test_delete_user_admin@email.com",
 		Password: string(hashedPassword),
-		Username: "adminuser",
+		Username: "test_delete_user_admin",
 		IsAdmin:  true,
 	}
-	adminUser2 := models.User{
-		Email:    "admin2@email.com",
+	adminUser2 := users.User{
+		Email:    "test_delete_user_admin2@email.com",
 		Password: string(hashedPassword),
-		Username: "adminuser2",
+		Username: "test_delete_user_admin2",
 		IsAdmin:  true,
 	}
-	normalUser := models.User{
-		Email:    "user@email.com",
+	normalUser := users.User{
+		Email:    "test_delete_user_normal@email.com",
 		Password: string(hashedPassword),
-		Username: "normaluser",
+		Username: "test_delete_user_normal",
 		IsAdmin:  false,
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &adminUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser.Email, adminUser.Password, adminUser.Username, adminUser.IsAdmin)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &adminUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser.Email, adminUser.Password, adminUser.Username, adminUser.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = pgxscan.Get(context.Background(), database.DB, &adminUser2, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser2.Email, adminUser2.Password, adminUser2.Username, adminUser2.IsAdmin)
+	err = pgxscan.Get(context.Background(), server.Config.DB, &adminUser2, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", adminUser2.Email, adminUser2.Password, adminUser2.Username, adminUser2.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = pgxscan.Get(context.Background(), database.DB, &normalUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", normalUser.Email, normalUser.Password, normalUser.Username, normalUser.IsAdmin)
+	err = pgxscan.Get(context.Background(), server.Config.DB, &normalUser, "INSERT INTO users (email, password, username, is_admin) VALUES ($1, $2, $3, $4) RETURNING *", normalUser.Email, normalUser.Password, normalUser.Username, normalUser.IsAdmin)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser.Email)
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser2.Email)
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", normalUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", adminUser2.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", normalUser.Email)
 	})
 
 	// Test table for the user profile delete endpoint
@@ -1304,16 +1289,16 @@ func TestDeleteUser(t *testing.T) {
 				method := "POST"
 				url := "/api/login"
 
-				var user models.User
+				var user users.User
 				if tt.isAdmin {
 					user = adminUser
 				} else {
 					user = normalUser
 				}
-				body, _ := json.Marshal(controllers.LoginRequest{Email: user.Email, Password: password})
+				body, _ := json.Marshal(auth.LoginRequest{Email: user.Email, Password: password})
 				req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				res, err := app.Test(req, -1)
+				res, err := server.Test(req, -1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1322,15 +1307,14 @@ func TestDeleteUser(t *testing.T) {
 				cookies = res.Cookies()
 
 				for _, cookie := range cookies {
-					if cookie.Name == "sessionID" {
+					if cookie.Name == sessions.CookieName {
 						session = cookie.Value
 						break
 					}
 				}
 
 				t.Cleanup(func() {
-					// Clean up
-					database.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.HDel(context.Background(), session)
 				})
 			}
 
@@ -1345,7 +1329,7 @@ func TestDeleteUser(t *testing.T) {
 				}
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1362,7 +1346,7 @@ func TestDeleteUser(t *testing.T) {
 					Exists bool
 				}
 
-				err = pgxscan.Get(context.Background(), database.DB, &exists, "SELECT EXISTS (SELECT TRUE FROM users WHERE id=$1)", tt.id)
+				err = pgxscan.Get(context.Background(), server.Config.DB, &exists, "SELECT EXISTS (SELECT TRUE FROM users WHERE id=$1)", tt.id)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1377,32 +1361,31 @@ func TestDeleteUser(t *testing.T) {
 
 // TestVerifyUserEmail tests the user email verification endpoint
 func TestVerifyUserEmail(t *testing.T) {
-	app := test.SetupTest(t)
+	server := test.SetupTest(t)
 
 	// Prepare the database data
 	password := "password"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	testUser := models.User{
-		Email:      "test@email.com",
+	testUser := users.User{
+		Email:      "test_verify_user_email@email.com",
 		Password:   string(hashedPassword),
-		Username:   "testuser",
+		Username:   "test_verify_user_email",
 		IsVerified: false,
 	}
-	err := pgxscan.Get(context.Background(), database.DB, &testUser, "INSERT INTO users (email, password, username, is_verified) VALUES ($1, $2, $3, $4) RETURNING *", testUser.Email, testUser.Password, testUser.Username, testUser.IsVerified)
+	err := pgxscan.Get(context.Background(), server.Config.DB, &testUser, "INSERT INTO users (email, password, username, is_verified) VALUES ($1, $2, $3, $4) RETURNING *", testUser.Email, testUser.Password, testUser.Username, testUser.IsVerified)
 	if err != nil {
 		t.Fatal(err)
 	}
-	uev := models.UserEmailVerification{
+	uev := users.UserEmailVerification{
 		UserID: testUser.ID,
 		Token:  uuid.New(),
 	}
-	err = pgxscan.Get(context.Background(), database.DB, &uev, "INSERT INTO user_email_verifications (user_id, token) VALUES ($1, $2) RETURNING *", uev.UserID, uev.Token)
+	err = pgxscan.Get(context.Background(), server.Config.DB, &uev, "INSERT INTO user_email_verifications (user_id, token) VALUES ($1, $2) RETURNING *", uev.UserID, uev.Token)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		// Clean up
-		database.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
+		server.Config.DB.Exec(context.Background(), "DELETE FROM users WHERE email=$1", testUser.Email)
 	})
 
 	// Test table for the user email verification endpoint
@@ -1447,11 +1430,11 @@ func TestVerifyUserEmail(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			method := "PUT"
-			urlTemplate := "/api/users/%s/verify?token=%s"
+			urlTemplate := "/api/verify?id=%s&token=%s"
 			url := fmt.Sprintf(urlTemplate, tt.id, tt.token)
 			req, _ := http.NewRequest(method, url, nil)
 
-			res, err := app.Test(req, -1)
+			res, err := server.Test(req, -1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1469,7 +1452,7 @@ func TestVerifyUserEmail(t *testing.T) {
 					Exists bool
 				}
 
-				err = pgxscan.Get(context.Background(), database.DB, &exists, "SELECT EXISTS (SELECT TRUE FROM user_email_verifications WHERE user_id=$1)", tt.id)
+				err = pgxscan.Get(context.Background(), server.Config.DB, &exists, "SELECT EXISTS (SELECT TRUE FROM user_email_verifications WHERE user_id=$1)", tt.id)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1479,8 +1462,8 @@ func TestVerifyUserEmail(t *testing.T) {
 				}
 
 				// Check if the user is verified
-				var user models.User
-				err = pgxscan.Get(context.Background(), database.DB, &user, "SELECT * FROM users WHERE id=$1", tt.id)
+				var user users.User
+				err = pgxscan.Get(context.Background(), server.Config.DB, &user, "SELECT * FROM users WHERE id=$1", tt.id)
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -21,7 +21,6 @@ const docTemplate = `{
     "paths": {
         "/forgotten-password": {
             "post": {
-                "description": "Create a forgotten password token for a user",
                 "consumes": [
                     "application/json"
                 ],
@@ -31,6 +30,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
+                "summary": "Create a forgotten password token for a user",
                 "parameters": [
                     {
                         "type": "string",
@@ -47,13 +47,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -61,7 +61,6 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "Create a new session for the user",
                 "consumes": [
                     "application/json"
                 ],
@@ -71,6 +70,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
+                "summary": "Create a new session for the user",
                 "parameters": [
                     {
                         "description": "Login data",
@@ -78,7 +78,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.LoginRequest"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
@@ -89,19 +89,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "401": {
                         "description": "Invalid credentials",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -114,7 +114,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Invalidate the user's session",
                 "consumes": [
                     "application/json"
                 ],
@@ -124,6 +123,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
+                "summary": "Invalidate the user's session",
                 "responses": {
                     "204": {
                         "description": "No Content"
@@ -138,7 +138,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Get the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -146,25 +145,26 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "User"
+                    "Me"
                 ],
+                "summary": "Get the authenticated user",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/users.User"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -175,7 +175,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Update the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -183,8 +182,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "User"
+                    "Me"
                 ],
+                "summary": "Update the authenticated user",
                 "parameters": [
                     {
                         "description": "User data",
@@ -192,7 +192,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.UserUpdateRequest"
+                            "$ref": "#/definitions/users.UserUpdateRequest"
                         }
                     }
                 ],
@@ -200,25 +200,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/users.User"
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -229,7 +229,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Delete the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -237,8 +236,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "User"
+                    "Me"
                 ],
+                "summary": "Delete the authenticated user",
                 "responses": {
                     "204": {
                         "description": "No Content"
@@ -246,13 +246,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -265,7 +265,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Changes the authenticated user's password",
                 "consumes": [
                     "application/json"
                 ],
@@ -273,8 +272,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "User"
+                    "Me"
                 ],
+                "summary": "Changes the authenticated user's password",
                 "parameters": [
                     {
                         "description": "Password change data",
@@ -282,7 +282,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.ChangePasswordRequest"
+                            "$ref": "#/definitions/users.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -293,19 +293,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -313,7 +313,6 @@ const docTemplate = `{
         },
         "/register": {
             "post": {
-                "description": "Create a new user",
                 "consumes": [
                     "application/json"
                 ],
@@ -323,6 +322,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
+                "summary": "Create a new user",
                 "parameters": [
                     {
                         "description": "Registration data",
@@ -330,7 +330,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.RegisterRequest"
+                            "$ref": "#/definitions/auth.RegisterRequest"
                         }
                     }
                 ],
@@ -341,13 +341,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -355,7 +355,6 @@ const docTemplate = `{
         },
         "/reset-password": {
             "post": {
-                "description": "Create a forgotten password token for a user",
                 "consumes": [
                     "application/json"
                 ],
@@ -365,6 +364,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
+                "summary": "Create a forgotten password token for a user",
                 "parameters": [
                     {
                         "description": "Reset password data",
@@ -372,7 +372,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.ResetPasswordRequest"
+                            "$ref": "#/definitions/auth.ResetPasswordRequest"
                         }
                     }
                 ],
@@ -383,19 +383,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "401": {
                         "description": "Invalid token",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -408,7 +408,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Get all existing users",
                 "consumes": [
                     "application/json"
                 ],
@@ -418,26 +417,27 @@ const docTemplate = `{
                 "tags": [
                     "User"
                 ],
+                "summary": "Get all existing users",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.User"
+                                "$ref": "#/definitions/users.User"
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -450,7 +450,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Get user by given ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -460,6 +459,7 @@ const docTemplate = `{
                 "tags": [
                     "User"
                 ],
+                "summary": "Get user",
                 "parameters": [
                     {
                         "type": "string",
@@ -473,31 +473,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/users.User"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "404": {
                         "description": "Not found",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -508,7 +508,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Update user by given ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -518,6 +517,7 @@ const docTemplate = `{
                 "tags": [
                     "User"
                 ],
+                "summary": "Update user",
                 "parameters": [
                     {
                         "type": "string",
@@ -532,7 +532,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.UserUpdateRequest"
+                            "$ref": "#/definitions/users.UserUpdateRequest"
                         }
                     }
                 ],
@@ -540,31 +540,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/users.User"
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "404": {
                         "description": "Not found",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -575,7 +575,6 @@ const docTemplate = `{
                         "SessionID": []
                     }
                 ],
-                "description": "Delete user by given ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -585,6 +584,7 @@ const docTemplate = `{
                 "tags": [
                     "User"
                 ],
+                "summary": "Delete user",
                 "parameters": [
                     {
                         "type": "string",
@@ -601,19 +601,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -621,7 +621,6 @@ const docTemplate = `{
         },
         "/users/{id}/verify": {
             "put": {
-                "description": "Verify a user's email given a token",
                 "consumes": [
                     "application/json"
                 ],
@@ -631,12 +630,13 @@ const docTemplate = `{
                 "tags": [
                     "User"
                 ],
+                "summary": "Verify a user",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "User ID",
                         "name": "id",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     },
                     {
@@ -654,13 +654,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/utils.APIError"
+                            "$ref": "#/definitions/errors.APIError"
                         }
                     }
                 }
@@ -668,26 +668,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "controllers.ChangePasswordRequest": {
-            "type": "object",
-            "required": [
-                "new_password",
-                "old_password"
-            ],
-            "properties": {
-                "new_password": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 8
-                },
-                "old_password": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 8
-                }
-            }
-        },
-        "controllers.LoginRequest": {
+        "auth.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -704,7 +685,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.RegisterRequest": {
+        "auth.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -727,7 +708,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.ResetPasswordRequest": {
+        "auth.ResetPasswordRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -748,24 +729,34 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.UserUpdateRequest": {
+        "errors.APIError": {
             "type": "object",
-            "required": [
-                "email",
-                "username"
-            ],
             "properties": {
-                "email": {
+                "error": {
                     "type": "string"
-                },
-                "username": {
-                    "type": "string",
-                    "maxLength": 32,
-                    "minLength": 3
                 }
             }
         },
-        "models.User": {
+        "users.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 8
+                },
+                "old_password": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 8
+                }
+            }
+        },
+        "users.User": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -791,14 +782,20 @@ const docTemplate = `{
                 }
             }
         },
-        "utils.APIError": {
+        "users.UserUpdateRequest": {
             "type": "object",
+            "required": [
+                "email",
+                "username"
+            ],
             "properties": {
-                "error": {
-                    "type": "boolean"
-                },
-                "message": {
+                "email": {
                     "type": "string"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 3
                 }
             }
         }

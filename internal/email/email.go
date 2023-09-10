@@ -6,46 +6,55 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2/log"
-	"github.com/thxgg/watermelon/app/models"
-	"github.com/thxgg/watermelon/config"
+	"github.com/thxgg/watermelon/app/users"
 	"github.com/wneessen/go-mail"
 )
 
 const (
-	EmailVerificationSubject  = "Verify your email address"
-	EmailVerificationTemplate = "templates/email_verification.html"
-	EmailVerificationLink     = "/verify?id=%s&token=%s"
-	ForgottenPasswordSubject  = "Forgotten password"
-	ForgottenPasswordTemplate = "templates/forgotten_password.html"
-	ForgottenPasswordLink     = "/reset-password?id=%s&token=%s"
+	emailVerificationSubject  = "Verify your email address"
+	emailVerificationTemplate = "templates/email_verification.html"
+	emailVerificationLink     = "/verify?id=%s&token=%s"
+	forgottenPasswordSubject  = "Forgotten password"
+	forgottenPasswordTemplate = "templates/forgotten_password.html"
+	forgottenPasswordLink     = "/reset-password?id=%s&token=%s"
 )
 
-var emailClient *mail.Client
+type Config struct {
+	Host     string `validate:"hostname"`
+	Port     int
+	Username string
+	Password string
+	From     string `validate:"email"`
+	SSL      bool
+}
 
-func SetupEmailClient() error {
-	log.Debug("Setting up email client")
-	clientOptions := []mail.Option{mail.WithPort(config.Config.Email.Port), mail.WithSMTPAuth(mail.SMTPAuthLogin), mail.WithUsername(config.Config.Email.Username), mail.WithPassword(config.Config.Email.Password)}
-	if config.Config.Email.SSL {
+type Client struct {
+	*mail.Client
+	config *Config
+}
+
+func NewClient(config *Config) (*Client, error) {
+	clientOptions := []mail.Option{
+		mail.WithPort(config.Port),
+		mail.WithSMTPAuth(mail.SMTPAuthLogin),
+		mail.WithUsername(config.Username),
+		mail.WithPassword(config.Password),
+	}
+
+	if config.SSL {
 		clientOptions = append(clientOptions, mail.WithSSL())
 	}
-	client, err := mail.NewClient(config.Config.Email.Host, clientOptions...)
-	if err != nil {
-		return err
-	}
 
-	emailClient = client
-	return nil
+	client, err := mail.NewClient(config.Host, clientOptions...)
+	return &Client{
+		Client: client,
+		config: config,
+	}, err
 }
 
-func CloseEmailClient() {
-	log.Debug("Closing email client")
-	emailClient.Close()
-}
-
-func SendEmail(to string, subject string, templateName string, body interface{}) error {
-	log.Debugf("Sending email to %s with subject %s from template %s with data %v", to, subject, templateName, body)
+func (client *Client) SendEmail(to string, subject string, templateName string, data interface{}) error {
 	m := mail.NewMsg()
-	if err := m.From(config.Config.Email.From); err != nil {
+	if err := m.From(client.config.From); err != nil {
 		log.Errorf("Failed to set email from address: %s", err)
 		return err
 	}
@@ -59,13 +68,13 @@ func SendEmail(to string, subject string, templateName string, body interface{})
 		log.Errorf("Failed to parse email template %s: %s", templateName, err)
 		return err
 	}
-	err = m.SetBodyHTMLTemplate(tmpl, body)
+	err = m.SetBodyHTMLTemplate(tmpl, data)
 	if err != nil {
 		log.Errorf("Failed to set email body: %s", err)
 		return err
 	}
 
-	err = emailClient.DialAndSend(m)
+	err = client.DialAndSend(m)
 	if err != nil {
 		log.Errorf("Failed to send email: %s", err)
 		return err
@@ -74,17 +83,17 @@ func SendEmail(to string, subject string, templateName string, body interface{})
 	return nil
 }
 
-func SendEmailVerificationEmail(user *models.User, uev models.UserEmailVerification) error {
+func (client *Client) SendEmailVerificationEmail(user *users.User, uev users.UserEmailVerification, baseURL string) error {
 	log.Infof("Sending email verification email to %s", user.Email)
 	data := struct {
 		Username string
 		Link     string
 	}{
 		Username: user.Username,
-		Link:     config.Config.BaseURL + fmt.Sprintf(EmailVerificationLink, user.ID, uev.Token),
+		Link:     baseURL + fmt.Sprintf(emailVerificationLink, user.ID, uev.Token),
 	}
 
-	err := SendEmail(user.Email, EmailVerificationSubject, EmailVerificationTemplate, data)
+	err := client.SendEmail(user.Email, emailVerificationSubject, emailVerificationTemplate, data)
 	if err != nil {
 		log.Errorf("Failed to send email verification email to %s: %s", user.Email, err)
 		return err
@@ -93,7 +102,7 @@ func SendEmailVerificationEmail(user *models.User, uev models.UserEmailVerificat
 	return nil
 }
 
-func SendForgottenPasswordEmail(user *models.User, fp models.ForgottenPassword) error {
+func (client *Client) SendForgottenPasswordEmail(user *users.User, fp users.ForgottenPassword, baseURL string) error {
 	log.Infof("Sending forgotten password email to %s", user.Email)
 	data := struct {
 		Username  string
@@ -101,11 +110,11 @@ func SendForgottenPasswordEmail(user *models.User, fp models.ForgottenPassword) 
 		ExpiresAt time.Time
 	}{
 		Username:  user.Username,
-		Link:      config.Config.BaseURL + fmt.Sprintf(ForgottenPasswordLink, user.ID, fp.Token),
+		Link:      baseURL + fmt.Sprintf(forgottenPasswordLink, user.ID, fp.Token),
 		ExpiresAt: fp.ExpiresAt,
 	}
 
-	err := SendEmail(user.Email, ForgottenPasswordSubject, ForgottenPasswordTemplate, data)
+	err := client.SendEmail(user.Email, forgottenPasswordSubject, forgottenPasswordTemplate, data)
 	if err != nil {
 		log.Errorf("Failed to send forgotten password email to %s: %s", user.Email, err)
 		return err

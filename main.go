@@ -1,70 +1,48 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
+	"log"
+
+	"github.com/thxgg/watermelon/app/server"
 	"github.com/thxgg/watermelon/config"
+	"github.com/thxgg/watermelon/internal/database"
 	"github.com/thxgg/watermelon/internal/email"
-	"github.com/thxgg/watermelon/internal/middleware"
-	"github.com/thxgg/watermelon/internal/routes"
-	"github.com/thxgg/watermelon/internal/utils"
-	"github.com/thxgg/watermelon/internal/validator"
-	"github.com/thxgg/watermelon/platform/database"
 )
 
-// @title Watermelon API
-// @version 1.0
-// @description This is the API for Watermelon
-// @contact.name Georgi Georgiev
-// @contact.email gatanasovgeorgiev@gmail.com
-// @BasePath /api
-// @securityDefinitions.apikey SessionID
-// @in cookie
-// @name sessionID
-// @description This is the session ID
+// @title												Watermelon API
+// @version											1.0
+// @description									This is the API for Watermelon
+// @contact.name								Georgi Georgiev
+// @contact.email								gatanasovgeorgiev@gmail.com
+// @BasePath										/api
+// @securityDefinitions.apikey	SessionID
+// @in													cookie
+// @name												sessionID
+// @description									This is the session ID
 func main() {
-	// Setup config
-	config.Setup()
+	// TODO: change config to use a yaml file
+	config := config.New()
 
-	// Setup validator
-	validator.Setup()
-
-	// Connect to the database
-	err := database.Connect()
+	db, err := database.NewPostgresDatabase(&config.Database)
 	if err != nil {
 		log.Fatal("Failed to connect to the database")
 	}
-	defer database.DB.Close()
 
-	// Connect to the sessions database
-	err = database.ConnectSessionsDB()
+	sessionsDB, err := database.NewRedisDatabase(&database.Config{URL: config.Session.DatabaseURL})
 	if err != nil {
 		log.Fatal("Failed to connect to the sessions database")
 	}
-	defer database.SessionsDB.Close()
 
-	// Setup email client
-	err = email.SetupEmailClient()
+	emailClient, err := email.NewClient(&config.Email)
 	if err != nil {
 		log.Fatal("Failed to setup email client")
 	}
-	defer email.CloseEmailClient()
 
-	// Configure the Fiber app
-	app := fiber.New()
-
-	// Setup Fiber middleware
-	middleware.FiberMiddleware(app)
-
-	// Setup routes
-	log.Debug("Setting up routes")
-	api := app.Group("/api")
-	routes.SwaggerRoute(api)
-	routes.MonitorRoute(api)
-	routes.PublicRoutes(api)
-	routes.PrivateRoutes(api)
-	routes.NotFoundRoute(api)
-
-	// Start Fiber server
-	utils.StartServer(app)
+	server := server.New(&server.Config{
+		Global:      config,
+		DB:          db,
+		SessionsDB:  sessionsDB,
+		EmailClient: emailClient,
+	})
+	server.StartWithGracefulShutdown()
 }

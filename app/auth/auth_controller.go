@@ -160,7 +160,7 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 func (c *Controller) Logout(ctx *fiber.Ctx) error {
 	sessionID := ctx.Cookies(sessions.CookieName)
 
-	c.SessionsDB.HDel(context.Background(), sessionID)
+	c.SessionsDB.Del(context.Background(), sessionID)
 	// ctx.ClearCookie("sessionID") seems to be broken, this is a workaround that mimics the internals of ClearCookie
 	ctx.Cookie(&fiber.Cookie{
 		Name:     sessions.CookieName,
@@ -281,7 +281,7 @@ func (c *Controller) ResetPassword(ctx *fiber.Ctx) error {
 // createSession creates a new session for the user and sets a cookie
 func (c *Controller) createSession(ctx *fiber.Ctx, user *users.User) error {
 	sessionID := uuid.New().String()
-	expiresAt := time.Now().Add(time.Minute * c.Config.Session.Duration)
+	expiresAt := time.Now().Add(c.Config.Session.Duration)
 	session := sessions.Session{
 		UserID:       user.ID,
 		UserIDString: user.ID.String(),

@@ -2,21 +2,22 @@ package test_utils
 
 import (
 	"io"
+	"log"
 	"os"
 	"testing"
 
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/thxgg/watermelon/app/server"
 	"github.com/thxgg/watermelon/config"
 	"github.com/thxgg/watermelon/internal/database"
+	"github.com/thxgg/watermelon/internal/database/migrations"
 	"github.com/thxgg/watermelon/internal/email"
 )
 
 func init() {
-	// Change working directory to the root of the project
+	// Change working directory to the root of the project (for email template resolution)
 	os.Chdir("../..")
+	log.Printf("Log: %s\n", os.Getenv("WATERMELON_TEST_LOG"))
 	if os.Getenv("WATERMELON_TEST_LOG") != "true" {
-		// Disable logging
 		log.SetOutput(io.Discard)
 	}
 }
@@ -24,6 +25,18 @@ func init() {
 // SetupTest is run before each test function and sets up the test environment
 func SetupTest(t *testing.T) *server.Server {
 	config := config.New()
+
+	if os.Getenv("WATERMELON_MIGRATE") == "true" {
+		migrator, err := migrations.NewMigrator(config.Database.URL)
+		if err != nil {
+			log.Fatal("Failed to setup migrator")
+		}
+		err = migrator.Migrate()
+		if err != nil {
+			log.Fatal("Failed to migrate")
+		}
+		os.Unsetenv("WATERMELON_MIGRATE")
+	}
 
 	db, err := database.NewPostgresDatabase(&config.Database)
 	if err != nil {

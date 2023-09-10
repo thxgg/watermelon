@@ -12,10 +12,10 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "$no_migrations_flag" = false ]; then
-  echo "Running database migrations"
-  godotenv -f ".env" tern migrate --config ./internal/database/migrations/tern.conf --migrations ./internal/database/migrations
-  echo "Database migrations complete"
+  export WATERMELON_MIGRATE=true
+else
+  export WATERMELON_MIGRATE=false
 fi
 
-
-godotenv -f ".env" go run main.go
+export WATERMELON_ENV=dev
+go run main.go

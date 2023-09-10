@@ -32,3 +32,6 @@ go.work
 
 **/.nuxt
 **/node_modules
+
+*.yaml
+!*.example.yaml

@@ -86,7 +86,7 @@ func TestGetSelf(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					server.Config.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.Del(context.Background(), session)
 				})
 			}
 
@@ -262,7 +262,7 @@ func TestUpdateSelf(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					server.Config.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.Del(context.Background(), session)
 				})
 			}
 
@@ -452,7 +452,7 @@ func TestChangePassword(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					server.Config.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.Del(context.Background(), session)
 				})
 			}
 
@@ -568,7 +568,7 @@ func TestDeleteSelf(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					server.Config.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.Del(context.Background(), session)
 				})
 			}
 
@@ -709,7 +709,7 @@ func TestGetUsers(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					server.Config.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.Del(context.Background(), session)
 				})
 			}
 
@@ -889,7 +889,7 @@ func TestGetUser(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					server.Config.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.Del(context.Background(), session)
 				})
 			}
 
@@ -1120,7 +1120,7 @@ func TestUpdateUser(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					server.Config.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.Del(context.Background(), session)
 				})
 			}
 
@@ -1314,7 +1314,7 @@ func TestDeleteUser(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					server.Config.SessionsDB.HDel(context.Background(), session)
+					server.Config.SessionsDB.Del(context.Background(), session)
 				})
 			}
 

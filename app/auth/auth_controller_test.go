@@ -131,7 +131,7 @@ func TestRegister(t *testing.T) {
 						}
 
 						t.Cleanup(func() {
-							server.Config.SessionsDB.HDel(context.Background(), cookie.Value)
+							server.Config.SessionsDB.Del(context.Background(), cookie.Value)
 						})
 
 						found = true
@@ -257,7 +257,7 @@ func TestLogin(t *testing.T) {
 
 						found = true
 						t.Cleanup(func() {
-							server.Config.SessionsDB.HDel(context.Background(), cookie.Value)
+							server.Config.SessionsDB.Del(context.Background(), cookie.Value)
 						})
 						break
 					}
@@ -336,7 +336,7 @@ func TestLogout(t *testing.T) {
 	exists := server.Config.SessionsDB.Exists(context.Background(), session)
 	if exists.Err() != nil {
 		t.Cleanup(func() {
-			server.Config.SessionsDB.HDel(context.Background(), session)
+			server.Config.SessionsDB.Del(context.Background(), session)
 		})
 		t.Error("Expected session to be deleted")
 	}

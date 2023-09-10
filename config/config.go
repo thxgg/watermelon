@@ -2,10 +2,9 @@ package config
 
 import (
 	"os"
-	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/spf13/viper"
 	"github.com/thxgg/watermelon/internal/database"
 	"github.com/thxgg/watermelon/internal/email"
 	"github.com/thxgg/watermelon/internal/sessions"
@@ -21,58 +20,28 @@ type Global struct {
 }
 
 func New() *Global {
-	config := &Global{
-		Database: database.Config{
-			URL:              loadEnvVar("DATABASE_URL"),
-			PreferConnection: loadEnvVarBool("DATABASE_PREFER_CONNECTION"),
-		},
-		Session: sessions.Config{
-			DatabaseURL: loadEnvVar("SESSION_DATABASE_URL"),
-			Duration:    time.Duration(loadEnvVarInt("SESSION_DURATION_MINUTES")),
-		},
-		Email: email.Config{
-			Host:     loadEnvVar("SMTP_HOST"),
-			Port:     loadEnvVarInt("SMTP_PORT"),
-			Username: loadEnvVar("SMTP_USERNAME"),
-			Password: loadEnvVar("SMTP_PASSWORD"),
-			From:     loadEnvVar("SMTP_FROM"),
-			SSL:      loadEnvVarBool("SMTP_SSL"),
-		},
-		Port:    loadEnvVar("PORT"),
-		BaseURL: loadEnvVar("BASE_URL"),
+	configName := "watermelon"
+	if os.Getenv("WATERMELON_ENV") == "test" {
+		configName = "test.watermelon"
+	}
+	viper.SetConfigName(configName)
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {             // Handle errors reading the config file
+		log.Fatalf("Couldn't read config file: %w", err)
 	}
 
-	err := validator.New().Struct(config)
+	var config *Global
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		log.Fatalf("Couldn't unmarshal config file: %v", err)
+	}
+
+	err = validator.New().Struct(config)
 	if err != nil {
 		log.Panicf("Failed to validate configuration: %s", err)
 	}
 
 	return config
-}
-
-func loadEnvVar(key string) string {
-	value, present := os.LookupEnv(key)
-	if !present {
-		log.Panicf("Environment variable %s not set", key)
-	}
-
-	return value
-}
-
-func loadEnvVarInt(key string) int {
-	value, err := strconv.Atoi(loadEnvVar(key))
-	if err != nil {
-		log.Panicf("Failed to parse environment variable %s as int: %s", key, err)
-	}
-
-	return value
-}
-
-func loadEnvVarBool(key string) bool {
-	value, err := strconv.ParseBool(loadEnvVar(key))
-	if err != nil {
-		log.Panicf("Failed to parse environment variable %s as bool: %s", key, err)
-	}
-
-	return value
 }

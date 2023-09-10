@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/thxgg/watermelon/internal/database"
+	"github.com/thxgg/watermelon/internal/errors"
 	"github.com/thxgg/watermelon/internal/validator"
 )
 
@@ -37,8 +38,8 @@ func NewAuthMiddleware(config *Config) (func(*fiber.Ctx) error, error) {
 
 		err := validator.New().Var(sessionID, "required,uuid4")
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid session ID",
+			return c.Status(fiber.StatusUnauthorized).JSON(errors.APIError{
+				Error: "Invalid session ID",
 			})
 		}
 
@@ -51,22 +52,22 @@ func NewAuthMiddleware(config *Config) (func(*fiber.Ctx) error, error) {
 
 		sessionMap := sessionsDB.HGetAll(context.Background(), sessionID)
 		if sessionMap.Err() != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid session ID",
+			return c.Status(fiber.StatusUnauthorized).JSON(errors.APIError{
+				Error: "Invalid session ID",
 			})
 		}
 
 		var session Session
 		err = sessionMap.Scan(&session)
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid session ID",
+			return c.Status(fiber.StatusUnauthorized).JSON(errors.APIError{
+				Error: "Invalid session ID",
 			})
 		}
 		userID, err := uuid.Parse(session.UserIDString)
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid session ID",
+			return c.Status(fiber.StatusUnauthorized).JSON(errors.APIError{
+				Error: "Invalid session ID",
 			})
 		}
 		session.UserID = userID

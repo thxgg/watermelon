@@ -1,0 +1,15 @@
+database:
+  url:
+  preferconnection:
+session:
+  databaseurl:
+  duration:
+email:
+  host:
+  port:
+  username:
+  password:
+  from:
+  ssl:
+port:
+baseurl:

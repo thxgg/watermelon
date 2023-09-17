@@ -1,6 +1,6 @@
 # Project: Watermelon
 
-This project is the first of the PGV stack (Postgres, Go, Vue).
+This project is the first of the PGN stack (Postgres, Go, Nuxt).
 
 ## File structure
 
@@ -65,3 +65,7 @@ To run the tests, setup the `test.watermelon.yaml` file and run `scripts/test.sh
 ### Starting the server
 
 To start the server, setup the `watermelon.yaml` file and run `scripts/run.sh`. To start the server without database migrations, run `scripts/run.sh -no-migrations`.
+
+## Website
+
+The website is built using the [Nuxt](https://nuxtjs.org/) framework. More information can be found in the [website README](website/README.md).
